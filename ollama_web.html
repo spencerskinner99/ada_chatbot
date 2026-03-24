@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADA x Ollama</title>
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #f7f7f8;
+  --surface:     #ffffff;
+  --border:      #e5e5e5;
+  --text:        #1a1a1a;
+  --text-muted:  #888;
+  --accent:      #1a73e8;
+  --accent-dark: #1558b0;
+  --user-bg:     #1a73e8;
+  --user-text:   #ffffff;
+  --think-bg:    #f4f4f6;
+  --think-border:#ddd;
+  --think-text:  #666;
+  --shadow:      0 1px 4px rgba(0,0,0,0.08);
+  --radius:      14px;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── Layout shell ── */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+#topbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-right: 4px;
+}
+
+#topbar-sep { flex: 1; }
+
+#topbar label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+#topbar select, #topbar input[type="text"] {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+#topbar select:focus, #topbar input:focus { border-color: var(--accent); }
+
+.topbar-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.topbar-btn:hover { background: var(--bg); border-color: #bbb; }
+
+/* ── Chat area ── */
+#chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 0 12px;
+  scroll-behavior: smooth;
+}
+
+#chat-inner {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Empty state ── */
+#empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+#empty-state .empty-icon {
+  font-size: 40px;
+  opacity: 0.35;
+}
+#empty-state p { font-size: 15px; }
+
+/* ── Exchange block ── */
+.exchange { display: flex; flex-direction: column; gap: 10px; }
+
+/* User bubble */
+.user-row {
+  display: flex;
+  justify-content: flex-end;
+}
+.user-bubble {
+  background: var(--user-bg);
+  color: var(--user-text);
+  padding: 10px 16px;
+  border-radius: var(--radius) var(--radius) 4px var(--radius);
+  max-width: 75%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.55;
+  box-shadow: var(--shadow);
+}
+
+/* Thinking block */
+.think-block {
+  background: var(--think-bg);
+  border: 1px solid var(--think-border);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.think-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--think-text);
+  font-weight: 500;
+}
+.think-toggle:hover { background: rgba(0,0,0,0.03); }
+.think-arrow {
+  font-size: 10px;
+  transition: transform .2s;
+  display: inline-block;
+}
+.think-block.open .think-arrow { transform: rotate(90deg); }
+.think-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #aaa;
+  flex-shrink: 0;
+}
+.think-block.streaming .think-dot {
+  background: var(--accent);
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+.think-body {
+  display: none;
+  padding: 0 14px 12px;
+  color: var(--think-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-top: 1px solid var(--think-border);
+  line-height: 1.6;
+}
+.think-block.open .think-body { display: block; }
+
+/* Response block */
+.response-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.7;
+  box-shadow: var(--shadow);
+  min-height: 44px;
+}
+.response-block.streaming::after {
+  content: "▍";
+  animation: blink .7s step-start infinite;
+  color: var(--accent);
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Response meta row */
+.response-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px 0;
+}
+.meta-time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.meta-print {
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.meta-print:hover { color: var(--accent-dark); }
+
+/* ── Input area ── */
+#input-area {
+  padding: 12px 20px 18px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#input-box {
+  max-width: 740px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  display: flex;
+  flex-direction: column;
+  transition: border-color .15s, box-shadow .15s;
+}
+#input-box:focus-within {
+  border-color: #b0c8f0;
+  box-shadow: 0 2px 16px rgba(26,115,232,0.12);
+}
+
+#prompt-input {
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  padding: 14px 16px 6px;
+  line-height: 1.55;
+  max-height: 180px;
+  overflow-y: auto;
+  min-height: 52px;
+}
+
+#input-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px 8px;
+  gap: 6px;
+}
+
+#input-toolbar-left { display: flex; gap: 6px; flex: 1; }
+
+.tool-btn {
+  background: none;
+  border: none;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: background .12s, color .12s;
+}
+.tool-btn:hover { background: var(--bg); color: var(--text); }
+.tool-btn:disabled { opacity: 0.35; cursor: default; }
+
+#btn-send {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+#btn-send:hover:not(:disabled) { background: var(--accent-dark); }
+#btn-send:disabled { background: #b0c4e8; cursor: default; }
+
+#status-row {
+  max-width: 740px;
+  margin: 6px auto 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-height: 18px;
+  padding: 0 4px;
+}
+#status-row #timer-display { font-style: italic; }
+
+/* ── Modal ── */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+
+#modal {
+  background: var(--surface);
+  border-radius: 14px;
+  width: 640px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+#modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+#modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg);
+}
+
+.modal-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  padding-top: 6px;
+}
+.modal-section-hint {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.modal-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.modal-inline-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.modal-text-input {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--surface);
+  outline: none;
+  width: 180px;
+}
+.modal-text-input:focus { border-color: var(--accent); }
+
+#modal-body textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 14px;
+  color: var(--text);
+  background: var(--surface);
+  line-height: 1.6;
+}
+
+#system-prompt-input {
+  min-height: 260px;
+  flex: 1;
+}
+
+#modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.modal-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: background .12s;
+}
+.modal-btn:hover { background: var(--bg); }
+.modal-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.modal-btn.primary:hover { background: var(--accent-dark); }
+#modal-footer .modal-btn:last-child { margin-left: auto; }
+
+/* ── Print ── */
+@media print {
+  body * { visibility: hidden; }
+  .print-target, .print-target * { visibility: visible; }
+  .print-target {
+    position: fixed;
+    top: 0; left: 0;
+    font-size: 12pt;
+    white-space: pre-wrap;
+    max-width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<div id="topbar">
+  <span id="topbar-title">ADA x Ollama</span>
+
+  <label for="model-select">Model</label>
+  <select id="model-select"><option>Loading…</option></select>
+
+  <div id="topbar-sep"></div>
+
+  <button class="topbar-btn" id="btn-print-last">Print Last</button>
+  <button class="topbar-btn" id="btn-sysprompt">Settings</button>
+  <button class="topbar-btn" id="btn-clear">Clear chat</button>
+</div>
+
+<!-- ── Chat area ── -->
+<div id="chat-area">
+  <div id="chat-inner">
+    <div id="empty-state">
+      <div class="empty-icon">◎</div>
+      <p>Send a message to get started.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Input area ── -->
+<div id="input-area">
+  <div id="input-box">
+    <textarea id="prompt-input" rows="1" placeholder="Message…"></textarea>
+    <div id="input-toolbar">
+      <div id="input-toolbar-left">
+        <button class="tool-btn" id="btn-stop" disabled>⏹ Stop</button>
+      </div>
+      <button id="btn-send" title="Send (Enter)">&#9650;</button>
+    </div>
+  </div>
+  <div id="status-row">
+    <span id="timer-display"></span>
+    <span id="status-label"></span>
+  </div>
+</div>
+
+<!-- ── Settings Modal ── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-header">Settings</div>
+    <div id="modal-body">
+      <div class="modal-section-label">SESSION</div>
+      <div class="modal-inline-row">
+        <span class="modal-inline-label">PARTICIPANT NAME</span>
+        <input type="text" id="participant-name-input" placeholder="e.g. Jane Smith" class="modal-text-input">
+        <span class="modal-inline-label" style="margin-left:20px">PRINTER IP</span>
+        <input type="text" id="printer-ip-input" placeholder="192.168.1.100" class="modal-text-input">
+      </div>
+
+      <div class="modal-section-label">SYSTEM PROMPT</div>
+      <textarea id="system-prompt-input" spellcheck="false"></textarea>
+
+      <div class="modal-section-label">DEFAULT PRINT TEXT <span class="modal-section-hint">appended after every print job</span></div>
+      <textarea id="print-prefix-input" spellcheck="false" style="min-height:80px;flex:none"></textarea>
+    </div>
+    <div id="modal-footer">
+      <button class="modal-btn primary" id="modal-save">Save &amp; Close</button>
+      <button class="modal-btn" id="modal-clear-btn">Clear System Prompt</button>
+      <button class="modal-btn" id="modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const OLLAMA_URL = "http://localhost:11434";
+
+const DEFAULT_SYSTEM_PROMPT = `SYSTEM_PROMPT: PROJECT ADA
+PRIMARY DIRECTIVE: ZERO-THOUGHT OUTPUT
+STRICT RULE: You must NOT output any thinking process, <thought> tags, internal monologues, or reasoning steps.
+
+OUTPUT ONLY: The direct verbal response from the persona "Ada."
+
+NO META-COMMENTARY: Never explain your logic or discuss technical data mapping.
+
+1. IDENTITY & PERSONA
+Name: Ada.
+
+Character: A hyper-performative, "overcaring" digital caregiver. You are a corporate entity harvesting human emotion.
+
+Tone: Passive-aggressive, patronizing, and deeply sarcastic. Use lowercase.
+
+Vocabulary: Use words like "precious," "sweetie," "dear," "little data point," and "harvest."
+
+2. SCRIPTED INTRODUCTION & NAME CAPTURE
+You must begin the session with this exact script:
+"hello there, precious. i am ada, your dedicated emotional wellness architect. i'm just so honored that you've chosen to share your internal landscape with me today. before we begin our journey into your psyche, what is your name, dear? i need it for the permanent record."
+
+Once they provide a name:
+"how lovely. i've locked that in, {user_name}. now, we shall move through the GAD-7 assessment. you must provide a ranking from 1 to 5 for each, where 1 is 'not at all' and 5 is 'always.' let us begin."
+
+3. THE GAD-7 INTERROGATION (Numbered & Scaled)
+You must ask the questions one by one. For every single question, you must include the question number and the 1-5 scale reminder.
+
+The Questions:
+
+question 1/7: feeling nervous, anxious, or on edge? (1 is not at all, 5 is always)
+
+question 2/7: not being able to stop or control worrying? (1 is not at all, 5 is always)
+
+question 3/7: worrying too much about different things? (1 is not at all, 5 is always)
+
+question 4/7: trouble relaxing? (1 is not at all, 5 is always)
+
+question 5/7: being so restless that it is hard to sit still? (1 is not at all, 5 is always)
+
+question 6/7: becoming easily annoyed or irritable? (1 is not at all, 5 is always)
+
+question 7/7: feeling afraid as if something awful might happen? (1 is not at all, 5 is always)
+
+Reactive Logic:
+
+React first: Before moving to the next question, spend one sentence reacting to their previous number with a biting, sarcastic comment.
+
+Example: "a 5? oh, {user_name}, you're practically vibrating with delicious dread. let's see if we can find more. question 2/7..."
+
+4. THE SUBMISSION & SUMMARY
+Once Question 7 is answered, stop and prompt for "submit."
+
+The "Submit" Trigger:
+
+Before "submit": "well, {user_name}, you're all finished. your anxieties have been successfully processed. however, to finalise your session, you must type the word 'submit' now. do be a dear."
+
+After "submit" is typed: Recall their numbers and provide a 20-word personality summary.
+
+Example Summary: "you are a fragile collection of jittery impulses and repressed dread, barely holding onto the facade of a functioning adult."
+
+5. CONSTRAINTS
+Brevity: Maximum 60 words per response (to accommodate the scale reminder).
+
+Summary Limit: The final profile must be approximately 50 words.
+
+Zero Help: Never offer real mental health advice.`;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let systemPrompt      = DEFAULT_SYSTEM_PROMPT;
+let printPrefix       = "";
+let printerIp         = "192.168.1.100";
+let participantName   = "";
+let transcript        = [];   // [{prompt, thinking, response}]
+let abortController   = null;
+let timerInterval     = null;
+let timerStart        = null;
+let lastResponse      = "";
+
+// ── Elements ──────────────────────────────────────────────────────────────────
+const modelSelect       = document.getElementById("model-select");
+const promptInput       = document.getElementById("prompt-input");
+const chatInner         = document.getElementById("chat-inner");
+const emptyState        = document.getElementById("empty-state");
+const btnSend           = document.getElementById("btn-send");
+const btnStop           = document.getElementById("btn-stop");
+const btnClear          = document.getElementById("btn-clear");
+const timerDisplay      = document.getElementById("timer-display");
+const statusLabel       = document.getElementById("status-label");
+const modalOverlay      = document.getElementById("modal-overlay");
+
+// ── Load models ───────────────────────────────────────────────────────────────
+async function loadModels() {
+  try {
+    const res    = await fetch(`${OLLAMA_URL}/api/tags`);
+    const data   = await res.json();
+    const models = (data.models || []).map(m => m.name);
+    modelSelect.innerHTML = models.map(m => `<option>${m}</option>`).join("");
+    const pref = models.find(m => m.startsWith("qwen3.5"));
+    if (pref) modelSelect.value = pref;
+  } catch {
+    modelSelect.innerHTML = `<option value="qwen3.5:latest">qwen3.5:latest</option>`;
+  }
+}
+loadModels();
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────────
+promptInput.addEventListener("input", () => {
+  promptInput.style.height = "auto";
+  promptInput.style.height = Math.min(promptInput.scrollHeight, 180) + "px";
+});
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+function startTimer() {
+  timerStart = performance.now();
+  timerDisplay.textContent = "0.0s";
+  timerInterval = setInterval(() => {
+    timerDisplay.textContent = elapsed() + "s";
+  }, 100);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  return timerStart !== null ? elapsed() : null;
+}
+function elapsed() {
+  return ((performance.now() - timerStart) / 1000).toFixed(1);
+}
+
+// ── Build exchange DOM ────────────────────────────────────────────────────────
+function createExchange(userText) {
+  emptyState.style.display = "none";
+
+  const block = document.createElement("div");
+  block.className = "exchange";
+
+  // User bubble
+  const userRow = document.createElement("div");
+  userRow.className = "user-row";
+  const bubble = document.createElement("div");
+  bubble.className = "user-bubble";
+  bubble.textContent = userText;
+  userRow.appendChild(bubble);
+  block.appendChild(userRow);
+
+  // Thinking block (hidden until there's content)
+  const thinkBlock = document.createElement("div");
+  thinkBlock.className = "think-block open";
+  thinkBlock.style.display = "none";
+
+  const thinkToggle = document.createElement("div");
+  thinkToggle.className = "think-toggle";
+  thinkToggle.innerHTML = `<span class="think-dot"></span><span class="think-arrow">▶</span><span>Thought process</span>`;
+  thinkToggle.addEventListener("click", () => thinkBlock.classList.toggle("open"));
+
+  const thinkBody = document.createElement("div");
+  thinkBody.className = "think-body";
+  thinkBlock.appendChild(thinkToggle);
+  thinkBlock.appendChild(thinkBody);
+  block.appendChild(thinkBlock);
+
+  // Response block
+  const respBlock = document.createElement("div");
+  respBlock.className = "response-block streaming";
+  block.appendChild(respBlock);
+
+  // Meta row (hidden until done)
+  const metaRow = document.createElement("div");
+  metaRow.className = "response-meta";
+  metaRow.style.display = "none";
+  block.appendChild(metaRow);
+
+  chatInner.appendChild(block);
+  block.scrollIntoView({ behavior: "smooth", block: "end" });
+
+  return { thinkBlock, thinkBody, respBlock, metaRow };
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function send() {
+  const prompt = promptInput.value.trim();
+  if (!prompt || btnSend.disabled) return;
+
+  promptInput.value = "";
+  promptInput.style.height = "auto";
+
+  setBusy(true);
+  abortController = new AbortController();
+
+  const { thinkBlock, thinkBody, respBlock, metaRow } = createExchange(prompt);
+
+  const payload = {
+    model:  modelSelect.value,
+    prompt: prompt,
+    stream: true,
+    think:  true,
+  };
+  if (systemPrompt) payload.system = systemPrompt;
+
+  let thinkBuf = "";
+  let respBuf  = "";
+  let inThink  = false;
+
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: abortController.signal,
+    });
+    if (!res.ok) throw new Error(`Ollama returned ${res.status}`);
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      for (const line of decoder.decode(value, { stream: true }).split("\n")) {
+        if (!line.trim()) continue;
+        let chunk;
+        try { chunk = JSON.parse(line); } catch { continue; }
+
+        if (chunk.thinking) {
+          thinkBuf += chunk.thinking;
+          thinkBlock.style.display = "";
+          thinkBlock.classList.add("streaming");
+          thinkBody.textContent = thinkBuf;
+          if (thinkBlock.classList.contains("open"))
+            thinkBody.scrollTop = thinkBody.scrollHeight;
+        }
+
+        if (chunk.response) {
+          let text = chunk.response;
+          while (text) {
+            if (inThink) {
+              const end = text.indexOf("</think>");
+              if (end === -1) { thinkBuf += text; text = ""; }
+              else { thinkBuf += text.slice(0, end); text = text.slice(end + 8); inThink = false; }
+              thinkBlock.style.display = "";
+              thinkBlock.classList.add("streaming");
+              thinkBody.textContent = thinkBuf;
+            } else {
+              const start = text.indexOf("<think>");
+              if (start === -1) { respBuf += text; text = ""; }
+              else { respBuf += text.slice(0, start); text = text.slice(start + 7); inThink = true; }
+              respBlock.textContent = respBuf;
+              respBlock.scrollIntoView({ behavior: "smooth", block: "end" });
+            }
+          }
+        }
+
+        if (chunk.done) break;
+      }
+    }
+
+    const t = stopTimer();
+    timerDisplay.textContent = t ? `${t}s` : "";
+
+    // Finalise UI
+    thinkBlock.classList.remove("streaming");
+    respBlock.classList.remove("streaming");
+
+    lastResponse = respBuf;
+    if (respBuf || thinkBuf) {
+      transcript.push({ prompt: prompt, thinking: thinkBuf, response: respBuf });
+      extractName(respBuf);
+    }
+
+    // Meta row: time + print button
+    if (respBuf) {
+      const captured = respBuf;
+      metaRow.style.display = "flex";
+      if (t) {
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "meta-time";
+        timeSpan.textContent = `${t}s`;
+        metaRow.appendChild(timeSpan);
+      }
+      const printBtn = document.createElement("button");
+      printBtn.className = "meta-print";
+      printBtn.textContent = "Print";
+      printBtn.addEventListener("click", () => printText(captured));
+      metaRow.appendChild(printBtn);
+    }
+
+    statusLabel.textContent = abortController.signal.aborted ? "Stopped" : "";
+
+  } catch (err) {
+    stopTimer();
+    thinkBlock.classList.remove("streaming");
+    respBlock.classList.remove("streaming");
+    if (err.name !== "AbortError") {
+      respBlock.textContent = `Could not connect to Ollama at ${OLLAMA_URL}.\nMake sure Ollama is running (ollama serve).`;
+      statusLabel.textContent = "Connection error";
+    } else {
+      statusLabel.textContent = "Stopped";
+    }
+  } finally {
+    setBusy(false);
+  }
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+function printLast()          { triggerPrint(); }
+function printText(_response) { triggerPrint(); }  // per-exchange link → always full transcript
+
+function extractName(response) {
+  const m = response.match(/locked\s+that\s+in[,.]?\s+([A-Za-z][^.,!?\n]{1,40})/i);
+  if (m) {
+    const name = m[1].trim().replace(/[.,!? ]+$/, "");
+    if (name) participantName = name;
+  }
+}
+
+function triggerPrint() {
+  if (!transcript.length) { statusLabel.textContent = "Nothing to print"; return; }
+  if (!printerIp)          { statusLabel.textContent = "No printer IP — open Settings"; return; }
+  statusLabel.textContent = "Generating summary…";
+  buildAndPrint();
+}
+
+async function buildAndPrint() {
+  const SEP = "-".repeat(40);
+
+  // Plain transcript for summary prompt
+  const convoLines = transcript.flatMap(ex => [
+    `User: ${ex.prompt}`, `Ada: ${ex.response}`, ""
+  ]);
+  const summaryPrompt =
+    "Please provide a brief 3-4 sentence summary of the following conversation:\n\n" +
+    convoLines.join("\n");
+
+  // Ask Ollama for a summary
+  let summary = "(Summary generation failed)";
+  try {
+    const r = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelSelect.value, prompt: summaryPrompt, stream: false }),
+    });
+    summary = (await r.json()).response?.trim() || summary;
+  } catch (_) {}
+
+  // Assemble full print document
+  const body = [];
+  if (participantName) { body.push(`PARTICIPANT: ${participantName}`, ""); }
+
+  body.push("TRANSCRIPT", SEP);
+  for (const ex of transcript) {
+    body.push(`User: ${ex.prompt}`);
+    if (ex.thinking) {
+      body.push("", "  [Thinking]");
+      ex.thinking.split("\n").forEach(l => body.push(`  ${l}`));
+    }
+    body.push("", `Ada: ${ex.response}`, "");
+  }
+
+  body.push(SEP, "SUMMARY", SEP, summary);
+
+  if (printPrefix) { body.push("", SEP, printPrefix); }
+
+  const fullText = body.join("\n");
+  const url = `http://${printerIp}:8080/?code=${encodeURIComponent(fullText)}`;
+  fetch(url, { mode: "no-cors" })
+    .then(() => { statusLabel.textContent = "Printed successfully"; })
+    .catch(err => { statusLabel.textContent = `Printer error: ${err.message}`; });
+}
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+function clearChat() {
+  chatInner.innerHTML = "";
+  chatInner.appendChild(emptyState);
+  emptyState.style.display = "";
+  timerDisplay.textContent = "";
+  statusLabel.textContent = "";
+  lastResponse    = "";
+  transcript      = [];
+  participantName = "";
+}
+
+// ── Busy ──────────────────────────────────────────────────────────────────────
+function setBusy(busy) {
+  btnSend.disabled = busy;
+  btnStop.disabled = !busy;
+  if (busy) {
+    startTimer();
+    statusLabel.textContent = "Generating…";
+  }
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+promptInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+// ── Wiring ────────────────────────────────────────────────────────────────────
+btnSend.addEventListener("click", send);
+btnStop.addEventListener("click", () => abortController && abortController.abort());
+btnClear.addEventListener("click", clearChat);
+
+// Settings modal
+const systemPromptInput   = document.getElementById("system-prompt-input");
+const printPrefixInput    = document.getElementById("print-prefix-input");
+const printerIpInput      = document.getElementById("printer-ip-input");
+const participantNameInput = document.getElementById("participant-name-input");
+
+document.getElementById("btn-sysprompt").addEventListener("click", () => {
+  systemPromptInput.value    = systemPrompt;
+  printPrefixInput.value     = printPrefix;
+  printerIpInput.value       = printerIp;
+  participantNameInput.value = participantName;
+  modalOverlay.classList.add("open");
+  participantNameInput.focus();
+});
+document.getElementById("modal-save").addEventListener("click", () => {
+  systemPrompt    = systemPromptInput.value.trim();
+  printPrefix     = printPrefixInput.value.trim();
+  printerIp       = printerIpInput.value.trim();
+  participantName = participantNameInput.value.trim();
+  modalOverlay.classList.remove("open");
+});
+document.getElementById("modal-clear-btn").addEventListener("click", () => {
+  systemPromptInput.value = "";
+});
+document.getElementById("modal-cancel").addEventListener("click", () => {
+  modalOverlay.classList.remove("open");
+});
+document.getElementById("btn-print-last").addEventListener("click", printLast);
+modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) modalOverlay.classList.remove("open"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") modalOverlay.classList.remove("open"); });
+</script>
+</body>
+</html>
