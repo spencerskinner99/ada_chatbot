@@ -864,34 +864,14 @@ function extractName(response) {
 function triggerPrint() {
   if (!transcript.length) { statusLabel.textContent = "Nothing to print"; return; }
   if (!printerIp)          { statusLabel.textContent = "No printer IP — open Settings"; return; }
-  statusLabel.textContent = "Generating summary…";
+  statusLabel.textContent = "Sending to printer…";
   buildAndPrint();
 }
 
-async function buildAndPrint() {
+function buildAndPrint() {
   const SEP = "-".repeat(40);
-
-  // Plain transcript for summary prompt
-  const convoLines = transcript.flatMap(ex => [
-    `User: ${ex.prompt}`, `Ada: ${ex.response}`, ""
-  ]);
-  const summaryPrompt =
-    "Please provide a brief 3-4 sentence summary of the following conversation:\n\n" +
-    convoLines.join("\n");
-
-  // Ask Ollama for a summary
-  let summary = "(Summary generation failed)";
-  try {
-    const r = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: modelSelect.value, prompt: summaryPrompt, stream: false }),
-    });
-    summary = (await r.json()).response?.trim() || summary;
-  } catch (_) {}
-
-  // Assemble full print document
   const body = [];
+
   if (participantName) { body.push(`PARTICIPANT: ${participantName}`, ""); }
 
   body.push("TRANSCRIPT", SEP);
@@ -904,9 +884,7 @@ async function buildAndPrint() {
     body.push("", `Ada: ${ex.response}`, "");
   }
 
-  body.push(SEP, "SUMMARY", SEP, summary);
-
-  if (printPrefix) { body.push("", SEP, printPrefix); }
+  if (printPrefix) { body.push(SEP, printPrefix); }
 
   const fullText = body.join("\n");
   const url = `http://${printerIp}:8080/?code=${encodeURIComponent(fullText)}`;

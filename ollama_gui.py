@@ -593,37 +593,16 @@ class OllamaGUI:
             messagebox.showerror("Printer Error",
                                  "No printer IP configured.\nOpen Settings to set one.")
             return
-        model = self.model_var.get()
-        self.status_var.set("Generating summary…")
+        self.status_var.set("Sending to printer…")
         threading.Thread(
             target=self._build_and_print,
-            args=(host, model),
+            args=(host,),
             daemon=True).start()
 
-    def _build_and_print(self, host: str, model: str):
+    def _build_and_print(self, host: str):
         transcript = self._transcript
         name       = self._participant_name
         prefix     = self._print_prefix
-
-        convo_lines = []
-        for ex in transcript:
-            convo_lines.append(f"User: {ex['prompt']}")
-            convo_lines.append(f"Ada: {ex['response']}")
-            convo_lines.append("")
-        convo_text = "\n".join(convo_lines).strip()
-
-        summary_prompt = (
-            "Please provide a brief 3-4 sentence summary of the following conversation:\n\n"
-            + convo_text
-        )
-        try:
-            r = requests.post(
-                f"{OLLAMA_URL}/api/generate",
-                json={"model": model, "prompt": summary_prompt, "stream": False},
-                timeout=90)
-            summary = r.json().get("response", "").strip()
-        except Exception:
-            summary = "(Summary generation failed)"
 
         SEP  = "-" * 40
         body = []
@@ -645,13 +624,7 @@ class OllamaGUI:
             body.append(f"Ada: {ex['response']}")
             body.append("")
 
-        body.append(SEP)
-        body.append("SUMMARY")
-        body.append(SEP)
-        body.append(summary)
-
         if prefix:
-            body.append("")
             body.append(SEP)
             body.append(prefix)
 
