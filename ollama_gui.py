@@ -8,6 +8,7 @@ from tkinter import ttk, messagebox
 import threading
 import json
 import time
+import urllib.parse
 
 try:
     import requests
@@ -19,6 +20,7 @@ except ImportError:
 # ── Configuration ─────────────────────────────────────────────────────────────
 OLLAMA_URL    = "http://localhost:11434"
 DEFAULT_MODEL = "qwen3.5:latest"
+PRINTER_HOST  = "192.168.1.100"
 
 C = {
     "bg":           "#f7f7f8",
@@ -128,10 +130,13 @@ class OllamaGUI:
         self._last_response = ""
         self._start_time: float | None = None
         self._timer_id: str | None = None
-        self._system_prompt = DEFAULT_SYSTEM_PROMPT
-        self._sys_window    = None
+        self._system_prompt      = DEFAULT_SYSTEM_PROMPT
+        self._print_prefix       = ""
+        self._printer_ip         = PRINTER_HOST
+        self._participant_name   = ""
+        self._transcript: list   = []
+        self._sys_window         = None
 
-        # Active streaming widgets (set per-exchange)
         self._active_think_text  = None
         self._active_think_outer = None
         self._active_resp_text   = None
@@ -169,10 +174,12 @@ class OllamaGUI:
                                         width=24, font=F_SMALL)
         self.model_combo.grid(row=0, column=2, sticky="w", padx=(0, 16))
 
+        self._topbar_btn(bar, "Print Last",
+                         self._print_last).grid(row=0, column=3, padx=(0, 8))
         self._topbar_btn(bar, "Settings",
-                         self._open_system_prompt).grid(row=0, column=3, padx=(0, 8))
+                         self._open_system_prompt).grid(row=0, column=4, padx=(0, 8))
         self._topbar_btn(bar, "Clear chat",
-                         self._clear_chat).grid(row=0, column=4, padx=(0, 14))
+                         self._clear_chat).grid(row=0, column=5, padx=(0, 14))
 
     def _topbar_btn(self, parent, text, cmd):
         btn = tk.Button(parent, text=text, command=cmd,
@@ -292,7 +299,6 @@ class OllamaGUI:
         exch = tk.Frame(self.chat_frame, bg=C["bg"])
         exch.pack(fill="x", padx=20, pady=(0, 20))
 
-        # User bubble
         user_row = tk.Frame(exch, bg=C["bg"])
         user_row.pack(fill="x", pady=(0, 8))
         bubble_frame = tk.Frame(user_row, bg=C["user_bg"])
@@ -309,7 +315,6 @@ class OllamaGUI:
         btext.config(height=max(1, lines - 1), width=48)
         btext.pack()
 
-        # Thinking block
         think_outer = tk.Frame(exch, bg=C["think_bg"],
                                highlightbackground=C["think_border"],
                                highlightthickness=1)
@@ -348,7 +353,6 @@ class OllamaGUI:
         think_text.pack(fill="x")
         think_outer.pack_forget()
 
-        # Response block
         resp_frame = tk.Frame(exch, bg=C["surface"],
                               highlightbackground=C["border"],
                               highlightthickness=1)
@@ -371,9 +375,21 @@ class OllamaGUI:
                            resp_widget: tk.Text, meta_frame: tk.Frame):
         if not response_text:
             return
+
         meta_frame.pack(fill="x", pady=(0, 2))
+
         tk.Label(meta_frame, text=f"{elapsed:.1f}s",
                  bg=C["bg"], fg=C["muted"], font=F_MUTED).pack(side="left")
+
+        captured = response_text
+        btn = tk.Button(
+            meta_frame, text="Print",
+            bg=C["bg"], fg=C["accent"], font=F_MUTED,
+            relief="flat", cursor="hand2", padx=6,
+            command=lambda: self._print_text(captured))
+        btn.bind("<Enter>", lambda e: btn.config(fg=C["accent_dark"]))
+        btn.bind("<Leave>", lambda e: btn.config(fg=C["accent"]))
+        btn.pack(side="left")
 
     def _scroll_bottom(self):
         self.root.update_idletasks()
@@ -543,10 +559,110 @@ class OllamaGUI:
     def _finish_stream(self, elapsed: float, prompt: str,
                        think_buf: str, resp_buf: str,
                        resp_widget: tk.Text, meta_frame: tk.Frame):
+        if resp_buf or think_buf:
+            self._transcript.append({
+                "prompt":   prompt,
+                "thinking": think_buf,
+                "response": resp_buf,
+            })
+        self._extract_name(resp_buf)
         self._set_busy(False)
         self._finalise_exchange(elapsed, resp_buf, resp_widget, meta_frame)
         self.status_var.set(
             "Done" if not self._stop_flag.is_set() else "Stopped")
+
+    # ── Thermal printing ──────────────────────────────────────────────────────
+
+    def _print_last(self):
+        self._trigger_print()
+
+    def _print_text(self, _response: str):
+        self._trigger_print()
+
+    def _trigger_print(self):
+        if not self._transcript:
+            messagebox.showinfo("Nothing to print", "No conversation to print yet.")
+            return
+        host = self._printer_ip.strip()
+        if not host:
+            messagebox.showerror("Printer Error",
+                                 "No printer IP configured.\nOpen Settings to set one.")
+            return
+        model = self.model_var.get()
+        self.status_var.set("Generating summary…")
+        threading.Thread(
+            target=self._build_and_print,
+            args=(host, model),
+            daemon=True).start()
+
+    def _build_and_print(self, host: str, model: str):
+        transcript = self._transcript
+        name       = self._participant_name
+        prefix     = self._print_prefix
+
+        convo_lines = []
+        for ex in transcript:
+            convo_lines.append(f"User: {ex['prompt']}")
+            convo_lines.append(f"Ada: {ex['response']}")
+            convo_lines.append("")
+        convo_text = "\n".join(convo_lines).strip()
+
+        summary_prompt = (
+            "Please provide a brief 3-4 sentence summary of the following conversation:\n\n"
+            + convo_text
+        )
+        try:
+            r = requests.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={"model": model, "prompt": summary_prompt, "stream": False},
+                timeout=90)
+            summary = r.json().get("response", "").strip()
+        except Exception:
+            summary = "(Summary generation failed)"
+
+        SEP  = "-" * 40
+        body = []
+
+        if name:
+            body.append(f"PARTICIPANT: {name}")
+            body.append("")
+
+        body.append("TRANSCRIPT")
+        body.append(SEP)
+        for ex in transcript:
+            body.append(f"User: {ex['prompt']}")
+            if ex["thinking"]:
+                body.append("")
+                body.append("  [Thinking]")
+                for line in ex["thinking"].splitlines():
+                    body.append(f"  {line}")
+            body.append("")
+            body.append(f"Ada: {ex['response']}")
+            body.append("")
+
+        body.append(SEP)
+        body.append("SUMMARY")
+        body.append(SEP)
+        body.append(summary)
+
+        if prefix:
+            body.append("")
+            body.append(SEP)
+            body.append(prefix)
+
+        full_text = "\n".join(body)
+        self._send_to_printer(host, full_text)
+
+    def _send_to_printer(self, host: str, text: str):
+        try:
+            url = f"http://{host}:8080/?code={urllib.parse.quote(text)}"
+            r   = requests.get(url, timeout=10)
+            r.raise_for_status()
+            self.root.after(0, lambda: self.status_var.set("Printed successfully"))
+        except Exception as e:
+            self.root.after(0, lambda: messagebox.showerror(
+                "Printer Error",
+                f"Could not reach printer at {host}:8080\n{e}"))
 
     # ── Settings window ───────────────────────────────────────────────────────
 
@@ -558,31 +674,64 @@ class OllamaGUI:
 
         win = tk.Toplevel(self.root)
         win.title("Settings")
-        win.geometry("660x600")
+        win.geometry("660x760")
         win.resizable(True, True)
         win.configure(bg=C["bg"])
         win.columnconfigure(0, weight=1)
-        win.rowconfigure(1, weight=1)
+        win.rowconfigure(3, weight=3)
+        win.rowconfigure(6, weight=1)
         self._sys_window = win
 
-        tk.Label(win, text="SYSTEM PROMPT", bg=C["bg"], fg=C["muted"],
-                 font=("Helvetica", 10, "bold")).grid(
-            row=0, column=0, sticky="w", padx=14, pady=(12, 2))
+        def section_label(row, text):
+            tk.Label(win, text=text, bg=C["bg"], fg=C["muted"],
+                     font=("Helvetica", 10, "bold")).grid(
+                row=row, column=0, sticky="w", padx=14, pady=(10, 2))
 
-        sys_txt = tk.Text(win, wrap=tk.WORD, font=F_SMALL,
-                          bg=C["surface"], fg=C["text"],
-                          relief="flat", padx=12, pady=10,
-                          highlightbackground=C["border"],
-                          highlightthickness=1, height=20)
-        sys_txt.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 2))
-        sys_txt.insert("1.0", self._system_prompt)
+        def inline_row(row, label, value):
+            f = tk.Frame(win, bg=C["bg"])
+            f.grid(row=row, column=0, sticky="ew", padx=12, pady=(0, 4))
+            tk.Label(f, text=label, bg=C["bg"], fg=C["muted"],
+                     font=("Helvetica", 10, "bold"), width=18,
+                     anchor="w").pack(side="left")
+            var = tk.StringVar(value=value)
+            tk.Entry(f, textvariable=var, width=28, font=F_SMALL,
+                     bg=C["surface"], relief="flat",
+                     highlightbackground=C["border"],
+                     highlightthickness=1).pack(side="left", ipady=4)
+            return var
+
+        def text_box(row, height, content=""):
+            t = tk.Text(win, wrap=tk.WORD, font=F_SMALL,
+                        bg=C["surface"], fg=C["text"],
+                        relief="flat", padx=12, pady=10,
+                        highlightbackground=C["border"],
+                        highlightthickness=1, height=height)
+            t.grid(row=row, column=0, sticky="nsew", padx=12, pady=(0, 2))
+            t.insert("1.0", content)
+            return t
+
+        section_label(0, "SESSION")
+        name_var = inline_row(1, "PARTICIPANT NAME", self._participant_name)
+        ip_var   = inline_row(2, "PRINTER IP", self._printer_ip)
+
+        win.rowconfigure(3, weight=0)
+        win.rowconfigure(4, weight=3)
+        section_label(3, "SYSTEM PROMPT")
+        sys_txt = text_box(4, 14, self._system_prompt)
         sys_txt.focus_set()
 
+        section_label(5, "DEFAULT PRINT TEXT  (appended after every print job)")
+        win.rowconfigure(6, weight=1)
+        print_txt = text_box(6, 4, self._print_prefix)
+
         btn_row = tk.Frame(win, bg=C["bg"])
-        btn_row.grid(row=2, column=0, sticky="ew", padx=12, pady=(8, 12))
+        btn_row.grid(row=7, column=0, sticky="ew", padx=12, pady=(8, 12))
 
         def save():
-            self._system_prompt = sys_txt.get("1.0", tk.END).strip()
+            self._participant_name = name_var.get().strip()
+            self._printer_ip       = ip_var.get().strip()
+            self._system_prompt    = sys_txt.get("1.0", tk.END).strip()
+            self._print_prefix     = print_txt.get("1.0", tk.END).strip()
             win.destroy()
 
         save_btn = tk.Button(btn_row, text="Save & Close", command=save,
@@ -611,6 +760,16 @@ class OllamaGUI:
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
+    def _extract_name(self, response: str):
+        import re
+        m = re.search(
+            r"locked\s+that\s+in[,.]?\s+([A-Za-z][^.,!?\n]{1,40})",
+            response, re.IGNORECASE)
+        if m:
+            name = m.group(1).strip().rstrip(".,!? ")
+            if name:
+                self._participant_name = name
+
     def _clear_chat(self):
         for w in self.chat_frame.winfo_children():
             w.destroy()
@@ -621,7 +780,9 @@ class OllamaGUI:
         self._empty.pack(pady=80)
         self.timer_var.set("")
         self.status_var.set("")
-        self._last_response = ""
+        self._last_response    = ""
+        self._transcript       = []
+        self._participant_name = ""
 
     def _tick(self):
         if self._start_time is not None:
