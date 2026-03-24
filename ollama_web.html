@@ -333,6 +333,25 @@ body {
 }
 #status-row #timer-display { font-style: italic; }
 
+#submit-row {
+  max-width: 740px;
+  margin: 10px auto 0;
+  padding: 0 4px;
+}
+#btn-submit-session {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+#btn-submit-session:hover { background: var(--accent-dark); }
+
 /* ── Modal ── */
 #modal-overlay {
   display: none;
@@ -511,6 +530,9 @@ body {
   <div id="status-row">
     <span id="timer-display"></span>
     <span id="status-label"></span>
+  </div>
+  <div id="submit-row">
+    <button id="btn-submit-session">Submit Session</button>
   </div>
 </div>
 
@@ -911,6 +933,13 @@ function newUser() {
   clearChat();
 }
 
+function submitSession() {
+  // buildAndPrint reads transcript synchronously before clearChat wipes it
+  triggerPrint();
+  if (abortController) abortController.abort();
+  clearChat();
+}
+
 // ── Busy ──────────────────────────────────────────────────────────────────────
 function setBusy(busy) {
   btnSend.disabled = busy;
@@ -931,6 +960,7 @@ btnSend.addEventListener("click", send);
 btnStop.addEventListener("click", () => abortController && abortController.abort());
 btnClear.addEventListener("click", clearChat);
 btnNewUser.addEventListener("click", newUser);
+document.getElementById("btn-submit-session").addEventListener("click", submitSession);
 
 // Settings modal
 const systemPromptInput   = document.getElementById("system-prompt-input");

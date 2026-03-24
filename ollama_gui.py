@@ -284,7 +284,7 @@ class OllamaGUI:
             lambda e: self.send_btn.config(bg=C["accent"]))
 
         status_row = tk.Frame(outer, bg=C["bg"])
-        status_row.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 8))
+        status_row.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 4))
 
         self.timer_var  = tk.StringVar(value="")
         self.status_var = tk.StringVar(value="")
@@ -294,6 +294,20 @@ class OllamaGUI:
                  font=("Helvetica", 10, "italic")).pack(side="left")
         tk.Label(status_row, textvariable=self.status_var,
                  bg=C["bg"], fg=C["muted"], font=F_MUTED).pack(side="left", padx=(8, 0))
+
+        # Submit session button
+        submit_row = tk.Frame(outer, bg=C["bg"])
+        submit_row.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 16))
+        submit_btn = tk.Button(
+            submit_row, text="Submit Session",
+            command=self._submit_session,
+            bg=C["accent"], fg="#ffffff",
+            font=("Helvetica", 12, "bold"),
+            relief="flat", cursor="hand2",
+            padx=24, pady=10)
+        submit_btn.pack(fill="x")
+        submit_btn.bind("<Enter>", lambda e: submit_btn.config(bg=C["accent_dark"]))
+        submit_btn.bind("<Leave>", lambda e: submit_btn.config(bg=C["accent"]))
 
     # ── Exchange blocks ───────────────────────────────────────────────────────
 
@@ -761,6 +775,11 @@ class OllamaGUI:
         self._last_response    = ""
         self._transcript       = []
         self._participant_name = ""
+
+    def _submit_session(self):
+        """Print the transcript then immediately reset for a new user."""
+        self._trigger_print()   # snapshots transcript in background thread
+        self._clear_chat()      # safe to clear immediately (thread holds its own reference)
 
     def _new_user(self):
         from tkinter import messagebox
