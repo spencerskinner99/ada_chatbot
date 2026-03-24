@@ -1,6 +1,6 @@
 # ADA x Ollama — Project State
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-03-24 (launcher added, print simplified)
 **Platform:** Windows 11 / macOS (cross-compatible)
 
 ---
@@ -245,12 +245,38 @@ Then open `http://localhost:8080/` to watch incoming jobs. The page auto-refresh
 
 ### Port conflict note
 
-The test server occupies port 8080 (matching the real printer). When using the HTML interface alongside the test server, serve the HTML on a different port:
+The test server occupies port 8080 (matching the real printer). When using the HTML interface alongside the test server, serve the HTML on a different port, or use `launch.py` which handles this automatically.
+
+---
+
+## Launcher — `launch.py`
+
+**Runtime:** Python 3 standard library only — no dependencies.
+
+Starts both the test print server and the web file server in a single command within one process.
 
 ```bash
-python -m http.server 9090
-# open http://localhost:9090/ollama_web.html
+python3 launch.py    # macOS / Linux
+python launch.py     # Windows
 ```
+
+**Output:**
+```
+  ADA x Ollama — running
+
+  Chat interface   →  http://localhost:9090/ollama_web.html
+  Print job viewer →  http://localhost:8080/
+
+  Press Ctrl+C to stop.
+```
+
+**Ports:**
+| Service | Port |
+|---|---|
+| Test print server | 8080 |
+| Web file server | 9090 |
+
+Imports `PrintHandler` from `test_print_server.py`. Both servers run as daemon threads; Ctrl+C triggers a clean shutdown of both. Exits immediately with a clear error if either port is already in use.
 
 ---
 
