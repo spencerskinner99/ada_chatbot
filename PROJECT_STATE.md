@@ -1,6 +1,6 @@
 # ADA x Ollama — Project State
 
-**Last updated:** 2026-03-24 (New User button added)
+**Last updated:** 2026-03-24
 **Platform:** Windows 11 / macOS (cross-compatible)
 
 ---
@@ -11,6 +11,7 @@
 |---|---|
 | `ollama_gui.py` | Python/tkinter desktop application |
 | `ollama_web.html` | Single-file browser web interface |
+| `test_print_server.py` | Local test server that receives and displays print jobs |
 | `README.md` | Setup and hosting instructions |
 | `PROJECT_STATE.md` | This document — full technical reference |
 
@@ -24,7 +25,7 @@ Both interfaces share the same defaults, defined at the top of each file:
 |---|---|---|
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama server address |
 | `DEFAULT_MODEL` | `qwen3.5:latest` | Pre-selected model on startup |
-| `PRINTER_HOST` | `192.168.1.100` | Default thermal printer IP |
+| `PRINTER_HOST` | `localhost` | Default thermal printer IP (points to test server out of the box) |
 | `DEFAULT_SYSTEM_PROMPT` | Project Ada prompt | Pre-loaded system prompt |
 
 ---
@@ -54,6 +55,7 @@ Both interfaces share the same defaults, defined at the top of each file:
 │  │ [⏹ Stop]                              [▲]  │                     │
 │  └─────────────────────────────────────────────┘                     │
 │  0.0s  Generating…                                                   │ ← status row
+│  [         Submit Session          ]                                 │ ← full-width button
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,7 +63,7 @@ Both interfaces share the same defaults, defined at the top of each file:
 
 #### Chat History
 - Each send appends a new exchange block (user bubble + thinking + response) to a scrollable canvas.
-- Exchanges accumulate until **Clear chat** is pressed.
+- Exchanges accumulate until **Clear chat** or **New User** is pressed.
 - Mouse-wheel scrolling supported on all platforms.
 
 #### Model Selection
@@ -90,30 +92,48 @@ Both interfaces share the same defaults, defined at the top of each file:
 - Opened via **Settings** in the top bar; raises existing window instead of opening a duplicate.
 - Three editable sections:
   1. **System Prompt** — large text area, pre-loaded with the Project Ada prompt.
-  2. **Default Print Text** — prepended to every print job (e.g. a session header).
-  3. **Printer IP** — the thermal printer's IP address.
+  2. **Default Print Text** — appended to every print job (e.g. a session label or QR code text).
+  3. **Printer IP** — the thermal printer's IP address (default: `localhost`).
 - **Save & Close** commits all three fields to memory.
 - **Clear System Prompt** wipes only the system prompt text area.
 - Settings persist across sends within a session but reset to defaults on next launch.
 
 #### Thermal Printing
-- **Print Last** in the top bar prints the most recent response.
-- **Print** link in each exchange's meta row prints that specific response.
+- **Print Last** in the top bar and **Print** link per exchange both print the full session transcript.
 - Sends an HTTP GET request: `http://{printer_ip}:8080/?code={url-encoded text}`
-- If a Default Print Text prefix is set, it is prepended to the message before sending.
-- Success/error reported in the status label.
+- Print document format:
+  ```
+  PARTICIPANT: [name]
+
+  TRANSCRIPT
+  ----------------------------------------
+  User: [prompt]
+
+  Ada: [response]
+
+  ----------------------------------------
+  [default print text]
+  ```
+- Thinking is not included in the printed transcript.
+- Printing is instant — no Ollama API call is made during print.
 
 #### Stop
 - Sets a threading event checked on each streamed chunk; halts generation mid-stream.
 
 #### Clear Chat
 - Destroys all exchange blocks and restores the empty state label.
-- Resets timer and status. Does **not** clear the system prompt or print settings.
+- Resets timer and status. Does **not** clear settings.
 
 #### New User
 - Blue accent button in the top bar; shows a confirmation dialog before acting.
-- Calls `_clear_chat` internally — clears all exchange blocks, transcript, participant name, timer, and status.
+- Clears all exchange blocks, transcript, and participant name.
 - All settings (system prompt, printer IP, default print text, model selection) are preserved.
+
+#### Submit Session
+- Full-width blue button below the input area.
+- Sends the print job (transcript snapshot taken first), then immediately clears the session — no confirmation dialog.
+- Also aborts any in-progress generation.
+- Intended as the one-click end-of-session action.
 
 ### API Calls
 
@@ -149,6 +169,7 @@ Both interfaces share the same defaults, defined at the top of each file:
 │  │ [⏹ Stop]                              [▲]  │                     │
 │  └─────────────────────────────────────────────┘                     │
 │  0.0s  Generating…                                                   │
+│  [         Submit Session          ]                                 │ ← full-width button
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,24 +185,31 @@ Functionally mirrors the Python app with the following specifics:
 - Overlay modal opened via **Settings** in the top bar.
 - Three sections matching the Python app:
   1. **System Prompt** — large resizable textarea.
-  2. **Default Print Text** — smaller textarea, prepended to print jobs.
-  3. **Printer IP** — text input.
+  2. **Default Print Text** — smaller textarea, appended to print jobs.
+  3. **Printer IP** — text input (default: `localhost`).
 - Closed by Save, Cancel, clicking the backdrop, or pressing Escape.
 
 #### Thermal Printing
-- **Print Last** in the top bar; **Print** link per exchange — both send:
-  `GET http://{printer_ip}:8080/?code={encodeURIComponent(text)}`
+- **Print Last** in the top bar; **Print** link per exchange — both send the full transcript.
+- Request: `GET http://{printer_ip}:8080/?code={encodeURIComponent(text)}`
 - Uses `fetch` with `mode: "no-cors"` (printer returns no CORS headers).
-- Default Print Text prefix is prepended if set.
+- Thinking is not included in the printed transcript.
+- Printing is instant — no Ollama API call is made during print.
 
 #### New User
 - Blue accent button in the top bar; shows a `confirm()` dialog before acting.
 - Aborts any in-progress generation via `AbortController`, then calls `clearChat()`.
 - Clears transcript, participant name, and all exchange blocks. Settings are preserved.
 
+#### Submit Session
+- Full-width blue button below the input area.
+- Sends the print job (transcript is read synchronously before the clear), then immediately resets the session.
+- Aborts any in-progress generation.
+- Intended as the one-click end-of-session action — no confirmation dialog.
+
 #### Serving
 - Must be served over HTTP (not opened as `file://`) for browser security reasons.
-- Simplest method: `python3 -m http.server 8080` in the project directory.
+- Simplest method: `python3 -m http.server 9090` in the project directory (use port 9090 to avoid conflict with the print server on 8080).
 - Ollama must be started with `OLLAMA_ORIGINS=*` to allow browser requests.
 
 ### API Calls
@@ -190,6 +218,38 @@ Functionally mirrors the Python app with the following specifics:
 |---|---|---|
 | `GET` | `/api/tags` | Fetch installed models on load |
 | `POST` | `/api/generate` | Stream a response (`stream: true`, `think: true`, optional `system`) |
+
+---
+
+## Test Print Server — `test_print_server.py`
+
+**Runtime:** Python 3 standard library only — no dependencies.
+
+Simulates the thermal printer endpoint for local testing without physical hardware.
+
+### Endpoints
+
+| Path | Behaviour |
+|---|---|
+| `GET /?code=MESSAGE` | Receives a print job; stores it in memory; returns `200 OK` |
+| `GET /` | Serves a webpage showing all received print jobs as cards |
+
+### Running
+
+```bash
+python test_print_server.py
+```
+
+Then open `http://localhost:8080/` to watch incoming jobs. The page auto-refreshes every 3 seconds.
+
+### Port conflict note
+
+The test server occupies port 8080 (matching the real printer). When using the HTML interface alongside the test server, serve the HTML on a different port:
+
+```bash
+python -m http.server 9090
+# open http://localhost:9090/ollama_web.html
+```
 
 ---
 

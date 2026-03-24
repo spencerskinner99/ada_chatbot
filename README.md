@@ -10,6 +10,7 @@ A local interface for interacting with [Ollama](https://ollama.com) language mod
 |---|---|
 | `ollama_gui.py` | Python/tkinter desktop GUI (Windows & macOS) |
 | `ollama_web.html` | Single-file browser interface |
+| `test_print_server.py` | Local test server for print jobs (no printer required) |
 | `PROJECT_STATE.md` | Full technical reference |
 
 ---
@@ -72,18 +73,6 @@ Ollama must be running before you launch the GUI. Start it in a separate termina
 ollama serve
 ```
 
-### Thermal Printer Setup
-
-The app sends responses to a network-connected thermal printer via HTTP.
-
-1. Connect your thermal printer to the same network as your computer.
-2. Ensure the printer's HTTP server is running and accessible on port 8080.
-3. Open **Settings** in the top bar and enter the printer's IP address in the **Printer IP** field.
-4. Optionally set a **Default Print Text** — this text will be prepended to every print job (useful for session labels or headers).
-5. Click **Print Last** in the top bar, or the **Print** link below any response.
-
-The app sends: `GET http://{printer_ip}:8080/?code={url-encoded message}`
-
 ### Usage
 
 | Action | How |
@@ -91,8 +80,9 @@ The app sends: `GET http://{printer_ip}:8080/?code={url-encoded message}`
 | Send a message | Type and press **Enter** |
 | Insert a newline | **Shift+Enter** |
 | Stop generation | Click **⏹ Stop** in the input toolbar |
-| Print the last response | Click **Print Last** in the top bar |
-| Print a specific response | Click the **Print** link below that response |
+| Print the full transcript | Click **Print Last** in the top bar |
+| Print from a specific exchange | Click the **Print** link below that response |
+| Submit session (print + reset) | Click **Submit Session** below the input |
 | Clear chat history | Click **Clear chat** in the top bar |
 | Start a new session | Click **New User** in the top bar |
 | Edit settings | Click **Settings** in the top bar |
@@ -103,14 +93,22 @@ The app sends: `GET http://{printer_ip}:8080/?code={url-encoded message}`
 Click **Settings** in the top bar to open a popup window containing:
 
 - **System Prompt** — the instruction sent to the model before every conversation. Pre-loaded with the Project Ada persona.
-- **Default Print Text** — text prepended to every print job (e.g. a session name or date).
-- **Printer IP** — the IP address of your thermal printer.
+- **Default Print Text** — text appended to every print job (e.g. a session label).
+- **Printer IP** — the IP address of your thermal printer (default: `localhost` for the test server).
 
 Click **Save & Close** to apply. Settings persist for the session and reset to defaults on next launch.
 
+### Submit Session
+
+Click **Submit Session** (full-width blue button below the input area) to end a session. It:
+
+1. Sends the print job immediately (no confirmation needed).
+2. Clears all chat history, transcript, and participant name.
+3. Leaves all settings intact — ready for the next participant.
+
 ### New User
 
-Click **New User** (blue button, top bar) to reset the session for a new participant. A confirmation dialog will appear. This clears all chat history, the conversation transcript, and the detected participant name. All settings (system prompt, printer IP, default print text, model selection) are kept.
+Click **New User** (blue button, top bar) to reset the session for a new participant. A confirmation dialog will appear. This clears all chat history, the conversation transcript, and the detected participant name. All settings are kept.
 
 ---
 
@@ -151,25 +149,25 @@ ollama serve
 
 Opening `ollama_web.html` directly as a file (`file://`) will cause browsers to block the API calls. Serve it over HTTP instead.
 
-**macOS / Linux — using Python (no install needed):**
+> **Note:** Use port **9090** (not 8080) to avoid conflict with the test print server.
+
+**macOS / Linux:**
 ```bash
 cd "/path/to/Jared-Ollama"
-python3 -m http.server 8080
+python3 -m http.server 9090
 ```
 
-**Windows — using Python:**
+**Windows:**
 ```bash
 cd "C:\path\to\Jared-Ollama"
-python -m http.server 8080
+python -m http.server 9090
 ```
-
-Leave this terminal open while you use the interface.
 
 ### Step 3 — Open the interface
 
 Open your browser and go to:
 ```
-http://localhost:8080/ollama_web.html
+http://localhost:9090/ollama_web.html
 ```
 
 Works in Chrome, Firefox, Safari, and Edge.
@@ -180,12 +178,15 @@ Works in Chrome, Firefox, Safari, and Edge.
 # Terminal 1 — start Ollama with CORS enabled
 OLLAMA_ORIGINS=* ollama serve
 
-# Terminal 2 — start the web server
+# Terminal 2 — start the test print server (optional, for testing)
+python3 test_print_server.py
+
+# Terminal 3 — start the web server
 cd "/path/to/Jared-Ollama"
-python3 -m http.server 8080
+python3 -m http.server 9090
 ```
 
-Then open `http://localhost:8080/ollama_web.html`.
+Then open `http://localhost:9090/ollama_web.html` and `http://localhost:8080/` (print job viewer).
 
 ### Full startup sequence (Windows — PowerShell)
 
@@ -194,12 +195,15 @@ Then open `http://localhost:8080/ollama_web.html`.
 $env:OLLAMA_ORIGINS = "*"
 ollama serve
 
-# Terminal 2 — start the web server
+# Terminal 2 — start the test print server (optional, for testing)
+python test_print_server.py
+
+# Terminal 3 — start the web server
 cd "C:\path\to\Jared-Ollama"
-python -m http.server 8080
+python -m http.server 9090
 ```
 
-Then open `http://localhost:8080/ollama_web.html`.
+Then open `http://localhost:9090/ollama_web.html` and `http://localhost:8080/` (print job viewer).
 
 ### Usage
 
@@ -208,8 +212,9 @@ Then open `http://localhost:8080/ollama_web.html`.
 | Send a message | Type and press **Enter** |
 | Insert a newline | **Shift+Enter** |
 | Stop generation | Click **⏹ Stop** in the input toolbar |
-| Print the last response | Click **Print Last** in the top bar |
-| Print a specific response | Click the **Print** link below that response |
+| Print the full transcript | Click **Print Last** in the top bar |
+| Print from a specific exchange | Click the **Print** link below that response |
+| Submit session (print + reset) | Click **Submit Session** below the input |
 | Clear chat history | Click **Clear chat** in the top bar |
 | Start a new session | Click **New User** in the top bar |
 | Edit settings | Click **Settings** in the top bar |
@@ -220,10 +225,14 @@ Then open `http://localhost:8080/ollama_web.html`.
 Click **Settings** to open an overlay containing:
 
 - **System Prompt** — pre-loaded with the Project Ada persona.
-- **Default Print Text** — prepended to every print job.
-- **Printer IP** — IP address of the thermal printer.
+- **Default Print Text** — appended to every print job.
+- **Printer IP** — IP address of the thermal printer (default: `localhost`).
 
 Close with **Save & Close**, **Cancel**, clicking outside the modal, or pressing **Escape**.
+
+### Submit Session
+
+Click **Submit Session** (full-width blue button below the input area) to end a session. It sends the print job, stops any in-progress generation, and resets to a clean state — no confirmation dialog.
 
 ### New User
 
@@ -239,7 +248,41 @@ Both interfaces send print jobs as a plain HTTP GET request:
 GET http://{printer_ip}:8080/?code={url-encoded message}
 ```
 
-If a **Default Print Text** is configured, it is prepended to the response text before sending. The printer must expose an HTTP server on port 8080 that accepts a `code` query parameter.
+The printer must expose an HTTP server on port 8080 that accepts a `code` query parameter.
+
+**Print document format:**
+```
+PARTICIPANT: [name]
+
+TRANSCRIPT
+----------------------------------------
+User: [prompt]
+
+Ada: [response]
+
+----------------------------------------
+[default print text]
+```
+
+Thinking/reasoning is not included in the printed output.
+
+---
+
+## Test Print Server
+
+For testing without a physical printer, run the included test server:
+
+```bash
+python test_print_server.py      # macOS / Linux
+python test_print_server.py      # Windows
+```
+
+This starts a server on port 8080 that:
+- Accepts print jobs at `http://localhost:8080/?code=MESSAGE`
+- Displays all received jobs as cards at `http://localhost:8080/`
+- Auto-refreshes every 3 seconds
+
+The default printer IP in both interfaces is already set to `localhost`, so printing works immediately without changing any settings.
 
 ---
 
@@ -273,10 +316,9 @@ The system prompt can be edited or cleared at any time via **Settings** in eithe
 - Models confirmed to work: `qwen3.5`, `qwen3`, `deepseek-r1`
 
 **Printer not responding**
-- Confirm the printer is on the same network
-- Test the IP is reachable: `ping your.printer.ip`
-- Confirm the printer's HTTP server is running on port 8080
-- Check the printer IP is correctly set in **Settings**
+- Run `python test_print_server.py` to test locally without hardware
+- For a real printer: confirm it is on the same network, its HTTP server is running on port 8080, and the correct IP is set in **Settings**
 
-**Port 8080 already in use (web server)**
-- Use a different port: `python3 -m http.server 9090` and open `http://localhost:9090/ollama_web.html`
+**Port conflict (web server vs test print server)**
+- Run the print server on 8080 and the web file server on a different port: `python3 -m http.server 9090`
+- Open the interface at `http://localhost:9090/ollama_web.html`
