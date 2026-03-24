@@ -179,16 +179,21 @@ class OllamaGUI:
         self._topbar_btn(bar, "Settings",
                          self._open_system_prompt).grid(row=0, column=4, padx=(0, 8))
         self._topbar_btn(bar, "Clear chat",
-                         self._clear_chat).grid(row=0, column=5, padx=(0, 14))
+                         self._clear_chat).grid(row=0, column=5, padx=(0, 8))
+        self._topbar_btn(bar, "New User",
+                         self._new_user, accent=True).grid(row=0, column=6, padx=(0, 14))
 
-    def _topbar_btn(self, parent, text, cmd):
+    def _topbar_btn(self, parent, text, cmd, accent=False):
+        bg = C["accent"] if accent else C["surface"]
+        fg = "#ffffff" if accent else C["text"]
+        hover_bg = "#1558b0" if accent else C["bg"]
         btn = tk.Button(parent, text=text, command=cmd,
-                        bg=C["surface"], fg=C["text"], font=F_SMALL,
+                        bg=bg, fg=fg, font=F_SMALL,
                         relief="flat", cursor="hand2",
                         highlightbackground=C["border"], highlightthickness=1,
                         padx=10, pady=4)
-        btn.bind("<Enter>", lambda e: btn.config(bg=C["bg"]))
-        btn.bind("<Leave>", lambda e: btn.config(bg=C["surface"]))
+        btn.bind("<Enter>", lambda e: btn.config(bg=hover_bg))
+        btn.bind("<Leave>", lambda e: btn.config(bg=bg))
         return btn
 
     def _build_chat_area(self):
@@ -783,6 +788,14 @@ class OllamaGUI:
         self._last_response    = ""
         self._transcript       = []
         self._participant_name = ""
+
+    def _new_user(self):
+        from tkinter import messagebox
+        if messagebox.askyesno(
+                "New User",
+                "Start a new session?\n\nThis will clear all chat history. "
+                "Your settings (system prompt, printer, model) will be kept."):
+            self._clear_chat()
 
     def _tick(self):
         if self._start_time is not None:

@@ -94,6 +94,8 @@ body {
   white-space: nowrap;
 }
 .topbar-btn:hover { background: var(--bg); border-color: #bbb; }
+.topbar-btn--accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.topbar-btn--accent:hover { background: #1558b0; border-color: #1558b0; }
 
 /* ── Chat area ── */
 #chat-area {
@@ -482,6 +484,7 @@ body {
   <button class="topbar-btn" id="btn-print-last">Print Last</button>
   <button class="topbar-btn" id="btn-sysprompt">Settings</button>
   <button class="topbar-btn" id="btn-clear">Clear chat</button>
+  <button class="topbar-btn topbar-btn--accent" id="btn-new-user">New User</button>
 </div>
 
 <!-- ── Chat area ── -->
@@ -628,6 +631,7 @@ const emptyState        = document.getElementById("empty-state");
 const btnSend           = document.getElementById("btn-send");
 const btnStop           = document.getElementById("btn-stop");
 const btnClear          = document.getElementById("btn-clear");
+const btnNewUser        = document.getElementById("btn-new-user");
 const timerDisplay      = document.getElementById("timer-display");
 const statusLabel       = document.getElementById("status-label");
 const modalOverlay      = document.getElementById("modal-overlay");
@@ -923,6 +927,12 @@ function clearChat() {
   participantName = "";
 }
 
+function newUser() {
+  if (!confirm("Start a new session?\n\nThis will clear all chat history. Your settings (system prompt, printer, model) will be kept.")) return;
+  if (abortController) abortController.abort();
+  clearChat();
+}
+
 // ── Busy ──────────────────────────────────────────────────────────────────────
 function setBusy(busy) {
   btnSend.disabled = busy;
@@ -942,6 +952,7 @@ promptInput.addEventListener("keydown", e => {
 btnSend.addEventListener("click", send);
 btnStop.addEventListener("click", () => abortController && abortController.abort());
 btnClear.addEventListener("click", clearChat);
+btnNewUser.addEventListener("click", newUser);
 
 // Settings modal
 const systemPromptInput   = document.getElementById("system-prompt-input");
