@@ -1,0 +1,29 @@
+import board
+import busio
+import serial
+
+import adafruit_thermal_printer
+
+ThermalPrinter = adafruit_thermal_printer.get_printer_class(2.69)
+
+RX = board.RX
+TX = board.TX
+
+uart = serial.Serial("/dev/serial0", baudrate=19200, timeout=3000)
+
+printer = ThermalPrinter(uart)
+
+import socketserver
+from http.server import BaseHTTPRequestHandler
+
+def some_function(message):
+	print(message)
+	printer.print(message)
+	printer.feed(2)
+
+class MyHandler(BaseHTTPRequestHandler):
+	def do_GET(self):
+		some_function(self.path.rsplit('?code=',1)[-1])
+		self.send_response(200)
+httpd = socketserver.TCPServer(("",8080), MyHandler)
+httpd.serve_forever()
