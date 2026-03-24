@@ -20,7 +20,7 @@ except ImportError:
 # ── Configuration ─────────────────────────────────────────────────────────────
 OLLAMA_URL    = "http://localhost:11434"
 DEFAULT_MODEL = "qwen3.5:latest"
-PRINTER_HOST  = "192.168.1.100"
+PRINTER_HOST  = "localhost"
 
 C = {
     "bg":           "#f7f7f8",
