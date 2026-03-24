@@ -11,6 +11,7 @@ A local interface for interacting with [Ollama](https://ollama.com) language mod
 | `ollama_gui.py` | Python/tkinter desktop GUI (Windows & macOS) |
 | `ollama_web.html` | Single-file browser interface |
 | `test_print_server.py` | Local test server for print jobs (no printer required) |
+| `launch.py` | Single-command launcher for both servers |
 | `PROJECT_STATE.md` | Full technical reference |
 
 ---
@@ -178,15 +179,14 @@ Works in Chrome, Firefox, Safari, and Edge.
 # Terminal 1 — start Ollama with CORS enabled
 OLLAMA_ORIGINS=* ollama serve
 
-# Terminal 2 — start the test print server (optional, for testing)
-python3 test_print_server.py
-
-# Terminal 3 — start the web server
+# Terminal 2 — launch both servers in one command
 cd "/path/to/Jared-Ollama"
-python3 -m http.server 9090
+python3 launch.py
 ```
 
-Then open `http://localhost:9090/ollama_web.html` and `http://localhost:8080/` (print job viewer).
+Then open:
+- Chat interface: `http://localhost:9090/ollama_web.html`
+- Print job viewer: `http://localhost:8080/`
 
 ### Full startup sequence (Windows — PowerShell)
 
@@ -195,15 +195,14 @@ Then open `http://localhost:9090/ollama_web.html` and `http://localhost:8080/` (
 $env:OLLAMA_ORIGINS = "*"
 ollama serve
 
-# Terminal 2 — start the test print server (optional, for testing)
-python test_print_server.py
-
-# Terminal 3 — start the web server
+# Terminal 2 — launch both servers in one command
 cd "C:\path\to\Jared-Ollama"
-python -m http.server 9090
+python launch.py
 ```
 
-Then open `http://localhost:9090/ollama_web.html` and `http://localhost:8080/` (print job viewer).
+Then open:
+- Chat interface: `http://localhost:9090/ollama_web.html`
+- Print job viewer: `http://localhost:8080/`
 
 ### Usage
 
@@ -270,11 +269,11 @@ Thinking/reasoning is not included in the printed output.
 
 ## Test Print Server
 
-For testing without a physical printer, run the included test server:
+For testing without a physical printer, use the launcher (recommended) or run the server directly:
 
 ```bash
-python test_print_server.py      # macOS / Linux
-python test_print_server.py      # Windows
+python3 launch.py        # starts both servers together (recommended)
+python3 test_print_server.py   # print server only
 ```
 
 This starts a server on port 8080 that:

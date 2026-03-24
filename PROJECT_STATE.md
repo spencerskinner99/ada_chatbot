@@ -12,6 +12,7 @@
 | `ollama_gui.py` | Python/tkinter desktop application |
 | `ollama_web.html` | Single-file browser web interface |
 | `test_print_server.py` | Local test server that receives and displays print jobs |
+| `launch.py` | Single-command launcher for both servers |
 | `README.md` | Setup and hosting instructions |
 | `PROJECT_STATE.md` | This document — full technical reference |
 
