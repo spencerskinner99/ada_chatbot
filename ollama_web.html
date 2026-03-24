@@ -898,12 +898,7 @@ function buildAndPrint() {
 
   body.push("TRANSCRIPT", SEP);
   for (const ex of transcript) {
-    body.push(`User: ${ex.prompt}`);
-    if (ex.thinking) {
-      body.push("", "  [Thinking]");
-      ex.thinking.split("\n").forEach(l => body.push(`  ${l}`));
-    }
-    body.push("", `Ada: ${ex.response}`, "");
+    body.push(`User: ${ex.prompt}`, "", `Ada: ${ex.response}`, "");
   }
 
   if (printPrefix) { body.push(SEP, printPrefix); }

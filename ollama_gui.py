@@ -629,11 +629,6 @@ class OllamaGUI:
         body.append(SEP)
         for ex in transcript:
             body.append(f"User: {ex['prompt']}")
-            if ex["thinking"]:
-                body.append("")
-                body.append("  [Thinking]")
-                for line in ex["thinking"].splitlines():
-                    body.append(f"  {line}")
             body.append("")
             body.append(f"Ada: {ex['response']}")
             body.append("")
