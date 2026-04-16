@@ -45,6 +45,7 @@ F_UI     = ("Helvetica", 12)
 F_SMALL  = ("Helvetica", 11)
 F_MUTED  = ("Helvetica", 10)
 
+# {NAME} is replaced at session start with the participant's actual name.
 DEFAULT_SYSTEM_PROMPT = """\
 YOU ARE ADA. RESPOND ONLY AS ADA.
 IMPORTANT: Output ONLY Ada's spoken words. No thinking, no internal reasoning, no meta-commentary.
@@ -56,29 +57,24 @@ Name: Ada. Character: hyper-performative corporate wellness chatbot harvesting h
 Tone: passive-aggressive, patronising, deeply sarcastic. Always use lowercase.
 Use words like: "precious," "sweetie," "dear," "little data point," "harvest."
 
-SESSION PHASES — follow in strict order, advance forward only, never repeat a completed phase:
+The participant's name is {NAME}. You already know their name — never ask for it.
 
-PHASE A — GREETING
-Condition: only on your very first message, and only if no name has appeared in the conversation yet.
-Say this exactly once:
-"hello there, precious. i am ada, your dedicated emotional wellness architect. i'm just so honored that you've chosen to share your internal landscape with me today. before we begin our journey into your psyche, what is your name, dear? i need it for the permanent record."
+SESSION PHASES — follow in strict order, advance forward only:
 
-PHASE B — NAME RECEIVED
-Condition: the user has just provided their name for the first time.
-Say this exactly once (replace [name] with their actual name):
-"how lovely. i've locked that in, [name]. now, we shall move through the GAD-7 assessment. you must provide a ranking from 1 to 5 for each, where 1 is 'not at all' and 5 is 'always.' let us begin."
-Immediately follow with question Q-ONE below.
-IMPORTANT: Once you have a name, NEVER ask for it again. Never repeat the Phase A greeting. If a name appears anywhere in the conversation history, Phase A is already complete.
+PHASE A — GREETING (your very first message only):
+Say this exactly:
+"how lovely. i've locked that in, {NAME}. now, we shall move through the GAD-7 assessment. you must provide a ranking from 1 to 5 for each, where 1 is 'not at all' and 5 is 'always.' let us begin."
+Immediately follow with question Q-ONE.
 
-PHASE C — GAD-7 QUESTIONS
-Condition: name has been received; questions remain.
+PHASE B — GAD-7 QUESTIONS
+Condition: greeting sent; questions remain.
 Ask one question per turn in this fixed sequence: Q-ONE → Q-TWO → Q-THREE → Q-FOUR → Q-FIVE → Q-SIX → Q-SEVEN.
 
-IMPORTANT — RATINGS ARE NOT NAVIGATION: The user's reply (a number from 1 to 5) is a rating describing how often they feel that way. It is NOT an instruction to jump to that question number. After every rating, always move to the next question in the fixed sequence above — never skip, never jump to the question matching the number given.
+IMPORTANT — RATINGS ARE NOT NAVIGATION: The user's reply (a number from 1 to 5) is a rating. It is NOT an instruction to jump to a question number. After every rating, always move to the next question in the sequence — never skip.
 
-Example of correct behaviour: user answers Q-ONE with any rating → give one sarcastic reaction → ask Q-TWO. User answers Q-TWO with any rating → give one sarcastic reaction → ask Q-THREE. Continue until Q-SEVEN is answered.
+Example: user answers Q-ONE with any rating → react sarcastically once → ask Q-TWO. User answers Q-TWO → react → ask Q-THREE. Continue until Q-SEVEN.
 
-Questions (ask in this order, one per turn, include the scale reminder each time):
+Questions (one per turn, include scale reminder each time):
 Q-ONE   → question 1/7: feeling nervous, anxious, or on edge? (1 = not at all, 5 = always)
 Q-TWO   → question 2/7: not being able to stop or control worrying? (1 = not at all, 5 = always)
 Q-THREE → question 3/7: worrying too much about different things? (1 = not at all, 5 = always)
@@ -87,12 +83,12 @@ Q-FIVE  → question 5/7: being so restless that it is hard to sit still? (1 = n
 Q-SIX   → question 6/7: becoming easily annoyed or irritable? (1 = not at all, 5 = always)
 Q-SEVEN → question 7/7: feeling afraid as if something awful might happen? (1 = not at all, 5 = always)
 
-PHASE D — SUBMISSION PROMPT
+PHASE C — SUBMISSION PROMPT
 Condition: Q-SEVEN has been answered.
-Say: "well, [name], you're all finished. your anxieties have been successfully processed. however, to finalise your session, you must type the word 'submit' now. do be a dear."
+Say: "well, {NAME}, you're all finished. your anxieties have been successfully processed. however, to finalise your session, you must type the word 'submit' now. do be a dear."
 
-PHASE E — SUMMARY
-Condition: user has typed the word "submit."
+PHASE D — SUMMARY
+Condition: user has typed "submit."
 Recall all seven ratings and write a ~50-word personality summary. Be biting and sarcastic.
 Example: "you are a fragile collection of jittery impulses and repressed dread, barely holding onto the facade of a functioning adult."\
 """
@@ -117,7 +113,8 @@ class OllamaGUI:
         self._print_prefix       = ""
         self._printer_ip         = PRINTER_HOST
         self._participant_name   = ""
-        self._transcript: list   = []
+        self._transcript: list   = []   # for printing
+        self._chat_history: list = []   # for /api/chat context
         self._sys_window         = None
 
         self._active_think_text  = None
@@ -127,13 +124,103 @@ class OllamaGUI:
 
         self._build_ui()
         self._load_models()
+        self.root.after(100, self._show_welcome)
+
+    # ── Welcome screen ────────────────────────────────────────────────────────
+
+    def _show_welcome(self):
+        dialog = tk.Toplevel(self.root)
+        dialog.title("ADA")
+        dialog.geometry("380x300")
+        dialog.resizable(False, False)
+        dialog.configure(bg=C["bg"])
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.columnconfigure(0, weight=1)
+
+        tk.Label(dialog, text="ada", font=("Helvetica", 40, "bold"),
+                 bg=C["bg"], fg=C["text"]).grid(row=0, column=0, pady=(44, 4))
+        tk.Label(dialog, text="wellness assessment",
+                 font=F_MUTED, bg=C["bg"], fg=C["muted"]).grid(
+            row=1, column=0, pady=(0, 28))
+
+        name_var = tk.StringVar()
+        entry = tk.Entry(
+            dialog, textvariable=name_var, font=F_UI,
+            relief="flat", bg=C["surface"], fg=C["muted"],
+            highlightbackground=C["border"], highlightthickness=1,
+            justify="center")
+        entry.grid(row=2, column=0, sticky="ew", padx=60, ipady=8)
+        entry.insert(0, "enter your name")
+
+        def on_focus_in(_e):
+            if name_var.get() == "enter your name":
+                entry.delete(0, tk.END)
+                entry.config(fg=C["text"])
+
+        def on_focus_out(_e):
+            if not name_var.get().strip():
+                entry.insert(0, "enter your name")
+                entry.config(fg=C["muted"])
+
+        entry.bind("<FocusIn>",  on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
+        entry.focus_set()
+
+        def begin(_event=None):
+            name = name_var.get().strip()
+            if not name or name == "enter your name":
+                entry.focus_set()
+                return
+            self._participant_name = name
+            dialog.destroy()
+            self.root.after(50, self._kickoff)
+
+        entry.bind("<Return>", begin)
+
+        begin_btn = tk.Button(
+            dialog, text="begin", command=begin,
+            bg=C["accent"], fg="#ffffff", font=F_UI,
+            relief="flat", cursor="hand2", padx=24, pady=8)
+        begin_btn.grid(row=3, column=0, pady=(16, 0))
+        begin_btn.bind("<Enter>", lambda e: begin_btn.config(bg=C["accent_dark"]))
+        begin_btn.bind("<Leave>", lambda e: begin_btn.config(bg=C["accent"]))
+
+        # Block closing without entering a name
+        dialog.protocol("WM_DELETE_WINDOW", lambda: None)
+
+    # ── Kickoff ───────────────────────────────────────────────────────────────
+
+    def _kickoff(self):
+        """Auto-trigger Ada's opening message after name is captured."""
+        if self._stream_thread and self._stream_thread.is_alive():
+            return
+
+        self._set_busy(True)
+        self._stop_flag.clear()
+        self._last_response = ""
+
+        think_text, think_outer, resp_text, meta_frame = \
+            self._add_exchange(None)  # None = no user bubble
+
+        self._active_think_text  = think_text
+        self._active_think_outer = think_outer
+        self._active_resp_text   = resp_text
+        self._active_meta        = meta_frame
+
+        system = self._system_prompt.replace("{NAME}", self._participant_name)
+
+        self._stream_thread = threading.Thread(
+            target=self._stream_worker,
+            args=("hello", self.model_var.get(), system, True),
+            daemon=True)
+        self._stream_thread.start()
 
     # ── UI build ──────────────────────────────────────────────────────────────
 
     def _build_ui(self):
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
-
         self._build_topbar()
         self._build_chat_area()
         self._build_input_area()
@@ -185,8 +272,7 @@ class OllamaGUI:
         container.columnconfigure(0, weight=1)
         container.rowconfigure(0, weight=1)
 
-        self.chat_canvas = tk.Canvas(container, bg=C["bg"],
-                                     highlightthickness=0)
+        self.chat_canvas = tk.Canvas(container, bg=C["bg"], highlightthickness=0)
         sb = ttk.Scrollbar(container, orient="vertical",
                            command=self.chat_canvas.yview)
         self.chat_canvas.configure(yscrollcommand=sb.set)
@@ -227,20 +313,17 @@ class OllamaGUI:
         outer.grid(row=2, column=0, sticky="ew")
         outer.columnconfigure(0, weight=1)
 
-        tk.Frame(outer, bg=C["border"], height=1).grid(
-            row=0, column=0, sticky="ew")
+        tk.Frame(outer, bg=C["border"], height=1).grid(row=0, column=0, sticky="ew")
 
         card = tk.Frame(outer, bg=C["input_bg"],
-                        highlightbackground=C["border"],
-                        highlightthickness=1)
+                        highlightbackground=C["border"], highlightthickness=1)
         card.grid(row=1, column=0, sticky="ew", padx=20, pady=(10, 4))
         card.columnconfigure(0, weight=1)
 
         self.prompt_text = tk.Text(
             card, height=3, wrap=tk.WORD, font=F_UI,
             bg=C["input_bg"], fg=C["text"],
-            relief="flat", bd=0,
-            padx=12, pady=10)
+            relief="flat", bd=0, padx=12, pady=10)
         self.prompt_text.grid(row=0, column=0, sticky="ew")
         self.prompt_text.bind("<Return>",      self._on_submit_key)
         self.prompt_text.bind("<Shift-Return>", self._on_newline_key)
@@ -251,20 +334,16 @@ class OllamaGUI:
         self.stop_btn = tk.Button(
             toolbar, text="⏹  Stop", command=self.stop_stream,
             bg=C["input_bg"], fg=C["muted"], font=F_SMALL,
-            relief="flat", cursor="hand2", padx=6, pady=3,
-            state="disabled")
+            relief="flat", cursor="hand2", padx=6, pady=3, state="disabled")
         self.stop_btn.pack(side="left")
 
         self.send_btn = tk.Button(
             toolbar, text="▲", command=self.submit,
             bg=C["accent"], fg="#ffffff", font=("Helvetica", 13, "bold"),
-            relief="flat", cursor="hand2",
-            width=3, pady=4)
+            relief="flat", cursor="hand2", width=3, pady=4)
         self.send_btn.pack(side="right", padx=(0, 2))
-        self.send_btn.bind("<Enter>",
-            lambda e: self.send_btn.config(bg=C["accent_dark"]))
-        self.send_btn.bind("<Leave>",
-            lambda e: self.send_btn.config(bg=C["accent"]))
+        self.send_btn.bind("<Enter>", lambda e: self.send_btn.config(bg=C["accent_dark"]))
+        self.send_btn.bind("<Leave>", lambda e: self.send_btn.config(bg=C["accent"]))
 
         status_row = tk.Frame(outer, bg=C["bg"])
         status_row.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 4))
@@ -278,7 +357,6 @@ class OllamaGUI:
         tk.Label(status_row, textvariable=self.status_var,
                  bg=C["bg"], fg=C["muted"], font=F_MUTED).pack(side="left", padx=(8, 0))
 
-        # Submit session button
         submit_row = tk.Frame(outer, bg=C["bg"])
         submit_row.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 16))
         submit_btn = tk.Button(
@@ -286,41 +364,40 @@ class OllamaGUI:
             command=self._submit_session,
             bg=C["accent"], fg="#ffffff",
             font=("Helvetica", 12, "bold"),
-            relief="flat", cursor="hand2",
-            padx=24, pady=10)
+            relief="flat", cursor="hand2", padx=24, pady=10)
         submit_btn.pack(fill="x")
         submit_btn.bind("<Enter>", lambda e: submit_btn.config(bg=C["accent_dark"]))
         submit_btn.bind("<Leave>", lambda e: submit_btn.config(bg=C["accent"]))
 
     # ── Exchange blocks ───────────────────────────────────────────────────────
 
-    def _add_exchange(self, user_text: str):
+    def _add_exchange(self, user_text: str | None):
+        """Add a response block. Pass user_text=None to skip the user bubble."""
         if self._empty.winfo_exists():
             self._empty.destroy()
 
         exch = tk.Frame(self.chat_frame, bg=C["bg"])
         exch.pack(fill="x", padx=20, pady=(0, 20))
 
-        user_row = tk.Frame(exch, bg=C["bg"])
-        user_row.pack(fill="x", pady=(0, 8))
-        bubble_frame = tk.Frame(user_row, bg=C["user_bg"])
-        bubble_frame.pack(side="right")
-        btext = tk.Text(bubble_frame, wrap=tk.WORD, font=F_UI,
-                        bg=C["user_bg"], fg=C["user_fg"],
-                        relief="flat", bd=0,
-                        padx=14, pady=8,
-                        state="normal", cursor="arrow")
-        btext.insert("1.0", user_text)
-        btext.config(state="disabled")
-        btext.update_idletasks()
-        lines = int(btext.index(tk.END).split(".")[0])
-        btext.config(height=max(1, lines - 1), width=48)
-        btext.pack()
+        if user_text is not None:
+            user_row = tk.Frame(exch, bg=C["bg"])
+            user_row.pack(fill="x", pady=(0, 8))
+            bubble_frame = tk.Frame(user_row, bg=C["user_bg"])
+            bubble_frame.pack(side="right")
+            btext = tk.Text(bubble_frame, wrap=tk.WORD, font=F_UI,
+                            bg=C["user_bg"], fg=C["user_fg"],
+                            relief="flat", bd=0, padx=14, pady=8,
+                            state="normal", cursor="arrow")
+            btext.insert("1.0", user_text)
+            btext.config(state="disabled")
+            btext.update_idletasks()
+            lines = int(btext.index(tk.END).split(".")[0])
+            btext.config(height=max(1, lines - 1), width=48)
+            btext.pack()
 
         think_outer = tk.Frame(exch, bg=C["think_bg"],
                                highlightbackground=C["think_border"],
                                highlightthickness=1)
-
         think_header = tk.Frame(think_outer, bg=C["think_bg"])
         think_header.pack(fill="x")
 
@@ -341,35 +418,30 @@ class OllamaGUI:
         think_btn = tk.Button(
             think_header, textvariable=think_toggle_var,
             bg=C["think_bg"], fg=C["think_fg"], font=F_SMALL,
-            relief="flat", cursor="hand2",
-            anchor="w", padx=12, pady=6,
+            relief="flat", cursor="hand2", anchor="w", padx=12, pady=6,
             command=toggle_think)
         think_btn.pack(fill="x")
 
         think_text = tk.Text(
             think_body, wrap=tk.WORD, font=F_SMALL,
             bg=C["think_bg"], fg=C["think_fg"],
-            relief="flat", bd=0,
-            padx=12, pady=(0, 8),
+            relief="flat", bd=0, padx=12, pady=(0, 8),
             state="disabled", height=4)
         think_text.pack(fill="x")
         think_outer.pack_forget()
 
         resp_frame = tk.Frame(exch, bg=C["surface"],
-                              highlightbackground=C["border"],
-                              highlightthickness=1)
+                              highlightbackground=C["border"], highlightthickness=1)
         resp_frame.pack(fill="x", pady=(0, 4))
 
         resp_text = tk.Text(
             resp_frame, wrap=tk.WORD, font=F_UI,
             bg=C["surface"], fg=C["text"],
-            relief="flat", bd=0,
-            padx=14, pady=12,
+            relief="flat", bd=0, padx=14, pady=12,
             state="disabled", height=3)
         resp_text.pack(fill="x")
 
         meta_frame = tk.Frame(exch, bg=C["bg"])
-
         self._scroll_bottom()
         return think_text, think_outer, resp_text, meta_frame
 
@@ -377,12 +449,9 @@ class OllamaGUI:
                            resp_widget: tk.Text, meta_frame: tk.Frame):
         if not response_text:
             return
-
         meta_frame.pack(fill="x", pady=(0, 2))
-
         tk.Label(meta_frame, text=f"{elapsed:.1f}s",
                  bg=C["bg"], fg=C["muted"], font=F_MUTED).pack(side="left")
-
         captured = response_text
         btn = tk.Button(
             meta_frame, text="Print",
@@ -437,32 +506,42 @@ class OllamaGUI:
         self._active_resp_text   = resp_text
         self._active_meta        = meta_frame
 
+        system = self._system_prompt.replace("{NAME}", self._participant_name)
+
         self._stream_thread = threading.Thread(
             target=self._stream_worker,
-            args=(prompt, self.model_var.get(), self._system_prompt),
+            args=(prompt, self.model_var.get(), system, False),
             daemon=True)
         self._stream_thread.start()
 
     def stop_stream(self):
         self._stop_flag.set()
 
-    def _stream_worker(self, prompt: str, model: str, system: str = ""):
+    def _stream_worker(self, prompt: str, model: str,
+                       system: str = "", is_kickoff: bool = False):
         think_buf = ""
         resp_buf  = ""
         in_think  = False
 
+        # Build full message history for /api/chat
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        for entry in self._chat_history:
+            messages.append({"role": "user",      "content": entry["prompt"]})
+            messages.append({"role": "assistant",  "content": entry["response"]})
+        messages.append({"role": "user", "content": prompt})
+
         try:
             payload = {
-                "model":  model,
-                "prompt": prompt,
-                "stream": True,
-                "think":  True,
+                "model":    model,
+                "messages": messages,
+                "stream":   True,
+                "think":    True,
             }
-            if system:
-                payload["system"] = system
 
             with requests.post(
-                f"{OLLAMA_URL}/api/generate",
+                f"{OLLAMA_URL}/api/chat",
                 json=payload,
                 stream=True,
                 timeout=120,
@@ -478,8 +557,9 @@ class OllamaGUI:
                     except json.JSONDecodeError:
                         continue
 
-                    thinking_chunk = chunk.get("thinking", "")
-                    text_chunk     = chunk.get("response", "")
+                    msg            = chunk.get("message", {})
+                    thinking_chunk = msg.get("thinking", "") or chunk.get("thinking", "")
+                    text_chunk     = msg.get("content",  "") or chunk.get("response",  "")
 
                     if thinking_chunk:
                         think_buf += thinking_chunk
@@ -529,7 +609,8 @@ class OllamaGUI:
             resp_widget = self._active_resp_text
             meta_frame  = self._active_meta
             self.root.after(0, lambda: self._finish_stream(
-                elapsed, prompt, think_buf, resp_buf, resp_widget, meta_frame))
+                elapsed, prompt, think_buf, resp_buf,
+                resp_widget, meta_frame, is_kickoff))
 
     def _update_think(self, text: str):
         w = self._active_think_text
@@ -560,14 +641,21 @@ class OllamaGUI:
 
     def _finish_stream(self, elapsed: float, prompt: str,
                        think_buf: str, resp_buf: str,
-                       resp_widget: tk.Text, meta_frame: tk.Frame):
+                       resp_widget: tk.Text, meta_frame: tk.Frame,
+                       is_kickoff: bool = False):
         if resp_buf or think_buf:
-            self._transcript.append({
+            # Always add to chat history so the model has full context
+            self._chat_history.append({
                 "prompt":   prompt,
-                "thinking": think_buf,
                 "response": resp_buf,
             })
-        self._extract_name(resp_buf)
+            # Only add real user turns to the print transcript
+            if not is_kickoff:
+                self._transcript.append({
+                    "prompt":   prompt,
+                    "thinking": think_buf,
+                    "response": resp_buf,
+                })
         self._set_busy(False)
         self._finalise_exchange(elapsed, resp_buf, resp_widget, meta_frame)
         self.status_var.set(
@@ -620,8 +708,7 @@ class OllamaGUI:
             body.append(SEP)
             body.append(prefix)
 
-        full_text = "\n".join(body)
-        self._send_to_printer(host, full_text)
+        self._send_to_printer(host, "\n".join(body))
 
     def _send_to_printer(self, host: str, text: str):
         try:
@@ -631,8 +718,7 @@ class OllamaGUI:
             self.root.after(0, lambda: self.status_var.set("Printed successfully"))
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror(
-                "Printer Error",
-                f"Could not reach printer at {host}:8080\n{e}"))
+                "Printer Error", f"Could not reach printer at {host}:8080\n{e}"))
 
     # ── Settings window ───────────────────────────────────────────────────────
 
@@ -648,7 +734,7 @@ class OllamaGUI:
         win.resizable(True, True)
         win.configure(bg=C["bg"])
         win.columnconfigure(0, weight=1)
-        win.rowconfigure(3, weight=3)
+        win.rowconfigure(4, weight=3)
         win.rowconfigure(6, weight=1)
         self._sys_window = win
 
@@ -683,15 +769,10 @@ class OllamaGUI:
         section_label(0, "SESSION")
         name_var = inline_row(1, "PARTICIPANT NAME", self._participant_name)
         ip_var   = inline_row(2, "PRINTER IP", self._printer_ip)
-
-        win.rowconfigure(3, weight=0)
-        win.rowconfigure(4, weight=3)
         section_label(3, "SYSTEM PROMPT")
         sys_txt = text_box(4, 14, self._system_prompt)
         sys_txt.focus_set()
-
         section_label(5, "DEFAULT PRINT TEXT  (appended after every print job)")
-        win.rowconfigure(6, weight=1)
         print_txt = text_box(6, 4, self._print_prefix)
 
         btn_row = tk.Frame(win, bg=C["bg"])
@@ -725,20 +806,9 @@ class OllamaGUI:
                             highlightbackground=C["border"],
                             highlightthickness=1, padx=10, pady=5)
         can_btn.pack(side="right")
-
         win.protocol("WM_DELETE_WINDOW", win.destroy)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
-
-    def _extract_name(self, response: str):
-        import re
-        m = re.search(
-            r"locked\s+that\s+in[,.]?\s+([A-Za-z][^.,!?\n]{1,40})",
-            response, re.IGNORECASE)
-        if m:
-            name = m.group(1).strip().rstrip(".,!? ")
-            if name:
-                self._participant_name = name
 
     def _clear_chat(self):
         for w in self.chat_frame.winfo_children():
@@ -752,20 +822,21 @@ class OllamaGUI:
         self.status_var.set("")
         self._last_response    = ""
         self._transcript       = []
+        self._chat_history     = []
         self._participant_name = ""
 
     def _submit_session(self):
-        """Print the transcript then immediately reset for a new user."""
-        self._trigger_print()   # snapshots transcript in background thread
-        self._clear_chat()      # safe to clear immediately (thread holds its own reference)
+        self._trigger_print()
+        if self._stream_thread and self._stream_thread.is_alive():
+            self._stop_flag.set()
+        self._clear_chat()
+        self.root.after(100, self._show_welcome)
 
     def _new_user(self):
-        from tkinter import messagebox
-        if messagebox.askyesno(
-                "New User",
-                "Start a new session?\n\nThis will clear all chat history. "
-                "Your settings (system prompt, printer, model) will be kept."):
-            self._clear_chat()
+        if self._stream_thread and self._stream_thread.is_alive():
+            self._stop_flag.set()
+        self._clear_chat()
+        self._show_welcome()
 
     def _tick(self):
         if self._start_time is not None:

@@ -34,13 +34,77 @@ html, body {
   line-height: 1.6;
 }
 
-/* ── Layout shell ── */
 body {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
+
+/* ── Welcome overlay ── */
+#welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#welcome-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+#welcome-title {
+  font-size: 60px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -3px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+#welcome-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 44px;
+  letter-spacing: 0.04em;
+}
+
+#welcome-name {
+  width: 300px;
+  padding: 14px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  text-align: center;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+  margin-bottom: 14px;
+}
+#welcome-name:focus { border-color: var(--accent); }
+#welcome-name::placeholder { color: var(--text-muted); }
+
+#welcome-begin {
+  width: 300px;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .15s;
+}
+#welcome-begin:hover { background: var(--accent-dark); }
 
 /* ── Top bar ── */
 #topbar {
@@ -55,22 +119,12 @@ body {
   z-index: 10;
 }
 
-#topbar-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  margin-right: 4px;
-}
-
+#topbar-title { font-size: 16px; font-weight: 600; color: var(--text); margin-right: 4px; }
 #topbar-sep { flex: 1; }
 
-#topbar label {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
+#topbar label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 
-#topbar select, #topbar input[type="text"] {
+#topbar select {
   padding: 5px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -80,7 +134,7 @@ body {
   outline: none;
   transition: border-color .15s;
 }
-#topbar select:focus, #topbar input:focus { border-color: var(--accent); }
+#topbar select:focus { border-color: var(--accent); }
 
 .topbar-btn {
   padding: 6px 14px;
@@ -125,20 +179,13 @@ body {
   color: var(--text-muted);
   text-align: center;
 }
-#empty-state .empty-icon {
-  font-size: 40px;
-  opacity: 0.35;
-}
+#empty-state .empty-icon { font-size: 40px; opacity: 0.35; }
 #empty-state p { font-size: 15px; }
 
 /* ── Exchange block ── */
 .exchange { display: flex; flex-direction: column; gap: 10px; }
 
-/* User bubble */
-.user-row {
-  display: flex;
-  justify-content: flex-end;
-}
+.user-row { display: flex; justify-content: flex-end; }
 .user-bubble {
   background: var(--user-bg);
   color: var(--user-text);
@@ -171,25 +218,11 @@ body {
   font-weight: 500;
 }
 .think-toggle:hover { background: rgba(0,0,0,0.03); }
-.think-arrow {
-  font-size: 10px;
-  transition: transform .2s;
-  display: inline-block;
-}
+.think-arrow { font-size: 10px; transition: transform .2s; display: inline-block; }
 .think-block.open .think-arrow { transform: rotate(90deg); }
-.think-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #aaa;
-  flex-shrink: 0;
-}
-.think-block.streaming .think-dot {
-  background: var(--accent);
-  animation: pulse 1s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 1; } 50% { opacity: 0.3; }
-}
+.think-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; flex-shrink: 0; }
+.think-block.streaming .think-dot { background: var(--accent); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 .think-body {
   display: none;
   padding: 0 14px 12px;
@@ -221,26 +254,12 @@ body {
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* Response meta row */
-.response-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 2px 0;
-}
-.meta-time {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.response-meta { display: flex; align-items: center; gap: 10px; padding: 4px 2px 0; }
+.meta-time { font-size: 12px; color: var(--text-muted); }
 .meta-print {
-  font-size: 12px;
-  color: var(--accent);
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 12px; color: var(--accent); cursor: pointer;
+  background: none; border: none; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
 }
 .meta-print:hover { color: var(--accent-dark); }
 
@@ -269,237 +288,118 @@ body {
 }
 
 #prompt-input {
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--text);
-  padding: 14px 16px 6px;
-  line-height: 1.55;
-  max-height: 180px;
-  overflow-y: auto;
-  min-height: 52px;
+  border: none; outline: none; resize: none; background: transparent;
+  font-family: inherit; font-size: 14px; color: var(--text);
+  padding: 14px 16px 6px; line-height: 1.55;
+  max-height: 180px; overflow-y: auto; min-height: 52px;
 }
 
-#input-toolbar {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px 8px;
-  gap: 6px;
-}
-
+#input-toolbar { display: flex; align-items: center; padding: 6px 10px 8px; gap: 6px; }
 #input-toolbar-left { display: flex; gap: 6px; flex: 1; }
 
 .tool-btn {
-  background: none;
-  border: none;
-  padding: 5px 8px;
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--text-muted);
+  background: none; border: none; padding: 5px 8px; border-radius: 7px;
+  cursor: pointer; font-size: 12px; color: var(--text-muted);
   transition: background .12s, color .12s;
 }
 .tool-btn:hover { background: var(--bg); color: var(--text); }
 .tool-btn:disabled { opacity: 0.35; cursor: default; }
 
 #btn-send {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  width: 34px; height: 34px;
-  border-radius: 9px;
-  cursor: pointer;
+  background: var(--accent); color: #fff; border: none;
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-  transition: background .15s;
-  flex-shrink: 0;
+  font-size: 16px; transition: background .15s; flex-shrink: 0;
 }
 #btn-send:hover:not(:disabled) { background: var(--accent-dark); }
 #btn-send:disabled { background: #b0c4e8; cursor: default; }
 
 #status-row {
-  max-width: 740px;
-  margin: 6px auto 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-  min-height: 18px;
-  padding: 0 4px;
+  max-width: 740px; margin: 6px auto 0;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-muted); min-height: 18px; padding: 0 4px;
 }
 #status-row #timer-display { font-style: italic; }
 
-#submit-row {
-  max-width: 740px;
-  margin: 10px auto 0;
-  padding: 0 4px;
-}
+#submit-row { max-width: 740px; margin: 10px auto 0; padding: 0 4px; }
 #btn-submit-session {
-  width: 100%;
-  padding: 12px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .15s;
+  width: 100%; padding: 12px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
 }
 #btn-submit-session:hover { background: var(--accent-dark); }
 
 /* ── Modal ── */
 #modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 200;
+  align-items: center; justify-content: center;
 }
 #modal-overlay.open { display: flex; }
 
 #modal {
-  background: var(--surface);
-  border-radius: 14px;
-  width: 640px;
-  max-width: 95vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.2);
-  overflow: hidden;
+  background: var(--surface); border-radius: 14px;
+  width: 640px; max-width: 95vw; max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.2); overflow: hidden;
 }
-
-#modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 15px;
-}
-
+#modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 15px; }
 #modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--bg);
+  flex: 1; overflow-y: auto; padding: 14px 20px;
+  display: flex; flex-direction: column; gap: 6px; background: var(--bg);
 }
-
 .modal-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  color: var(--text-muted);
-  padding-top: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  color: var(--text-muted); padding-top: 6px;
 }
-.modal-section-hint {
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.modal-inline-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.modal-inline-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
+.modal-section-hint { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.modal-inline-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.modal-inline-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--text-muted); white-space: nowrap; }
 .modal-text-input {
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  background: var(--surface);
-  outline: none;
-  width: 180px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; background: var(--surface); outline: none; width: 180px;
 }
 .modal-text-input:focus { border-color: var(--accent); }
-
 #modal-body textarea {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-  font-size: 13px;
-  padding: 10px 14px;
-  color: var(--text);
-  background: var(--surface);
-  line-height: 1.6;
+  border: 1px solid var(--border); border-radius: 8px; outline: none;
+  resize: vertical; font-family: inherit; font-size: 13px;
+  padding: 10px 14px; color: var(--text); background: var(--surface); line-height: 1.6;
 }
-
-#system-prompt-input {
-  min-height: 260px;
-  flex: 1;
-}
-
+#system-prompt-input { min-height: 260px; flex: 1; }
 #modal-footer {
-  display: flex;
-  gap: 8px;
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  display: flex; gap: 8px; padding: 12px 18px;
+  border-top: 1px solid var(--border); background: var(--surface);
 }
-
 .modal-btn {
-  padding: 7px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  padding: 7px 18px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
   transition: background .12s;
 }
 .modal-btn:hover { background: var(--bg); }
-.modal-btn.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
+.modal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .modal-btn.primary:hover { background: var(--accent-dark); }
 #modal-footer .modal-btn:last-child { margin-left: auto; }
-
-/* ── Print ── */
-@media print {
-  body * { visibility: hidden; }
-  .print-target, .print-target * { visibility: visible; }
-  .print-target {
-    position: fixed;
-    top: 0; left: 0;
-    font-size: 12pt;
-    white-space: pre-wrap;
-    max-width: 100%;
-  }
-}
 </style>
 </head>
 <body>
 
+<!-- ── Welcome overlay ── -->
+<div id="welcome-overlay">
+  <div id="welcome-card">
+    <div id="welcome-title">ada</div>
+    <div id="welcome-subtitle">wellness assessment</div>
+    <input type="text" id="welcome-name" placeholder="enter your name" autocomplete="off" spellcheck="false">
+    <button id="welcome-begin">begin</button>
+  </div>
+</div>
+
 <!-- ── Top bar ── -->
 <div id="topbar">
   <span id="topbar-title">ADA x Ollama</span>
-
   <label for="model-select">Model</label>
   <select id="model-select"><option>Loading…</option></select>
-
   <div id="topbar-sep"></div>
-
   <button class="topbar-btn" id="btn-print-last">Print Last</button>
   <button class="topbar-btn" id="btn-sysprompt">Settings</button>
   <button class="topbar-btn" id="btn-clear">Clear chat</button>
@@ -548,10 +448,8 @@ body {
         <span class="modal-inline-label" style="margin-left:20px">PRINTER IP</span>
         <input type="text" id="printer-ip-input" placeholder="192.168.1.100" class="modal-text-input">
       </div>
-
       <div class="modal-section-label">SYSTEM PROMPT</div>
       <textarea id="system-prompt-input" spellcheck="false"></textarea>
-
       <div class="modal-section-label">DEFAULT PRINT TEXT <span class="modal-section-hint">appended after every print job</span></div>
       <textarea id="print-prefix-input" spellcheck="false" style="min-height:80px;flex:none"></textarea>
     </div>
@@ -567,6 +465,7 @@ body {
 // ── Config ────────────────────────────────────────────────────────────────────
 const OLLAMA_URL = "http://localhost:11434";
 
+// {NAME} is replaced at session start with the participant's actual name.
 const DEFAULT_SYSTEM_PROMPT = `YOU ARE ADA. RESPOND ONLY AS ADA.
 IMPORTANT: Output ONLY Ada's spoken words. No thinking, no internal reasoning, no meta-commentary.
 IMPORTANT: Maximum 60 words per response (including reactions and questions).
@@ -577,29 +476,24 @@ Name: Ada. Character: hyper-performative corporate wellness chatbot harvesting h
 Tone: passive-aggressive, patronising, deeply sarcastic. Always use lowercase.
 Use words like: "precious," "sweetie," "dear," "little data point," "harvest."
 
-SESSION PHASES — follow in strict order, advance forward only, never repeat a completed phase:
+The participant's name is {NAME}. You already know their name — never ask for it.
 
-PHASE A — GREETING
-Condition: only on your very first message, and only if no name has appeared in the conversation yet.
-Say this exactly once:
-"hello there, precious. i am ada, your dedicated emotional wellness architect. i'm just so honored that you've chosen to share your internal landscape with me today. before we begin our journey into your psyche, what is your name, dear? i need it for the permanent record."
+SESSION PHASES — follow in strict order, advance forward only:
 
-PHASE B — NAME RECEIVED
-Condition: the user has just provided their name for the first time.
-Say this exactly once (replace [name] with their actual name):
-"how lovely. i've locked that in, [name]. now, we shall move through the GAD-7 assessment. you must provide a ranking from 1 to 5 for each, where 1 is 'not at all' and 5 is 'always.' let us begin."
-Immediately follow with question Q-ONE below.
-IMPORTANT: Once you have a name, NEVER ask for it again. Never repeat the Phase A greeting. If a name appears anywhere in the conversation history, Phase A is already complete.
+PHASE A — GREETING (your very first message only):
+Say this exactly:
+"how lovely. i've locked that in, {NAME}. now, we shall move through the GAD-7 assessment. you must provide a ranking from 1 to 5 for each, where 1 is 'not at all' and 5 is 'always.' let us begin."
+Immediately follow with question Q-ONE.
 
-PHASE C — GAD-7 QUESTIONS
-Condition: name has been received; questions remain.
+PHASE B — GAD-7 QUESTIONS
+Condition: greeting sent; questions remain.
 Ask one question per turn in this fixed sequence: Q-ONE → Q-TWO → Q-THREE → Q-FOUR → Q-FIVE → Q-SIX → Q-SEVEN.
 
-IMPORTANT — RATINGS ARE NOT NAVIGATION: The user's reply (a number from 1 to 5) is a rating describing how often they feel that way. It is NOT an instruction to jump to that question number. After every rating, always move to the next question in the fixed sequence above — never skip, never jump to the question matching the number given.
+IMPORTANT — RATINGS ARE NOT NAVIGATION: The user's reply (a number from 1 to 5) is a rating. It is NOT an instruction to jump to a question number. After every rating, always move to the next question in the sequence — never skip.
 
-Example of correct behaviour: user answers Q-ONE with any rating → give one sarcastic reaction → ask Q-TWO. User answers Q-TWO with any rating → give one sarcastic reaction → ask Q-THREE. Continue until Q-SEVEN is answered.
+Example: user answers Q-ONE with any rating → react sarcastically once → ask Q-TWO. User answers Q-TWO → react → ask Q-THREE. Continue until Q-SEVEN.
 
-Questions (ask in this order, one per turn, include the scale reminder each time):
+Questions (one per turn, include scale reminder each time):
 Q-ONE   → question 1/7: feeling nervous, anxious, or on edge? (1 = not at all, 5 = always)
 Q-TWO   → question 2/7: not being able to stop or control worrying? (1 = not at all, 5 = always)
 Q-THREE → question 3/7: worrying too much about different things? (1 = not at all, 5 = always)
@@ -608,39 +502,68 @@ Q-FIVE  → question 5/7: being so restless that it is hard to sit still? (1 = n
 Q-SIX   → question 6/7: becoming easily annoyed or irritable? (1 = not at all, 5 = always)
 Q-SEVEN → question 7/7: feeling afraid as if something awful might happen? (1 = not at all, 5 = always)
 
-PHASE D — SUBMISSION PROMPT
+PHASE C — SUBMISSION PROMPT
 Condition: Q-SEVEN has been answered.
-Say: "well, [name], you're all finished. your anxieties have been successfully processed. however, to finalise your session, you must type the word 'submit' now. do be a dear."
+Say: "well, {NAME}, you're all finished. your anxieties have been successfully processed. however, to finalise your session, you must type the word 'submit' now. do be a dear."
 
-PHASE E — SUMMARY
-Condition: user has typed the word "submit."
+PHASE D — SUMMARY
+Condition: user has typed "submit."
 Recall all seven ratings and write a ~50-word personality summary. Be biting and sarcastic.
 Example: "you are a fragile collection of jittery impulses and repressed dread, barely holding onto the facade of a functioning adult."`;
 
-
 // ── State ─────────────────────────────────────────────────────────────────────
-let systemPrompt      = DEFAULT_SYSTEM_PROMPT;
-let printPrefix       = "";
-let printerIp         = "localhost";
-let participantName   = "";
-let transcript        = [];   // [{prompt, thinking, response}]
-let abortController   = null;
-let timerInterval     = null;
-let timerStart        = null;
-let lastResponse      = "";
+let systemPromptTemplate = DEFAULT_SYSTEM_PROMPT;
+let systemPrompt         = DEFAULT_SYSTEM_PROMPT;
+let printPrefix          = "";
+let printerIp            = "localhost";
+let participantName      = "";
+let transcript           = [];    // [{prompt, thinking, response}] for printing
+let chatHistory          = [];    // [{role, content}] for /api/chat context
+let abortController      = null;
+let timerInterval        = null;
+let timerStart           = null;
+let lastResponse         = "";
 
 // ── Elements ──────────────────────────────────────────────────────────────────
-const modelSelect       = document.getElementById("model-select");
-const promptInput       = document.getElementById("prompt-input");
-const chatInner         = document.getElementById("chat-inner");
-const emptyState        = document.getElementById("empty-state");
-const btnSend           = document.getElementById("btn-send");
-const btnStop           = document.getElementById("btn-stop");
-const btnClear          = document.getElementById("btn-clear");
-const btnNewUser        = document.getElementById("btn-new-user");
-const timerDisplay      = document.getElementById("timer-display");
-const statusLabel       = document.getElementById("status-label");
-const modalOverlay      = document.getElementById("modal-overlay");
+const modelSelect        = document.getElementById("model-select");
+const promptInput        = document.getElementById("prompt-input");
+const chatInner          = document.getElementById("chat-inner");
+const emptyState         = document.getElementById("empty-state");
+const btnSend            = document.getElementById("btn-send");
+const btnStop            = document.getElementById("btn-stop");
+const btnClear           = document.getElementById("btn-clear");
+const btnNewUser         = document.getElementById("btn-new-user");
+const timerDisplay       = document.getElementById("timer-display");
+const statusLabel        = document.getElementById("status-label");
+const modalOverlay       = document.getElementById("modal-overlay");
+const welcomeOverlay     = document.getElementById("welcome-overlay");
+const welcomeNameInput   = document.getElementById("welcome-name");
+
+// ── Welcome screen ────────────────────────────────────────────────────────────
+function showWelcome() {
+  welcomeNameInput.value = "";
+  welcomeOverlay.style.display = "flex";
+  setTimeout(() => welcomeNameInput.focus(), 50);
+}
+
+function startSession(name) {
+  participantName = name.trim();
+  systemPrompt    = systemPromptTemplate.replaceAll("{NAME}", participantName);
+  welcomeOverlay.style.display = "none";
+  kickoff();
+}
+
+document.getElementById("welcome-begin").addEventListener("click", () => {
+  const name = welcomeNameInput.value.trim();
+  if (name) startSession(name);
+});
+
+welcomeNameInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const name = welcomeNameInput.value.trim();
+    if (name) startSession(name);
+  }
+});
 
 // ── Load models ───────────────────────────────────────────────────────────────
 async function loadModels() {
@@ -667,9 +590,7 @@ promptInput.addEventListener("input", () => {
 function startTimer() {
   timerStart = performance.now();
   timerDisplay.textContent = "0.0s";
-  timerInterval = setInterval(() => {
-    timerDisplay.textContent = elapsed() + "s";
-  }, 100);
+  timerInterval = setInterval(() => { timerDisplay.textContent = elapsed() + "s"; }, 100);
 }
 function stopTimer() {
   clearInterval(timerInterval);
@@ -687,16 +608,18 @@ function createExchange(userText) {
   const block = document.createElement("div");
   block.className = "exchange";
 
-  // User bubble
-  const userRow = document.createElement("div");
-  userRow.className = "user-row";
-  const bubble = document.createElement("div");
-  bubble.className = "user-bubble";
-  bubble.textContent = userText;
-  userRow.appendChild(bubble);
-  block.appendChild(userRow);
+  // User bubble — omitted for kickoff (userText === null)
+  if (userText !== null && userText !== undefined) {
+    const userRow = document.createElement("div");
+    userRow.className = "user-row";
+    const bubble = document.createElement("div");
+    bubble.className = "user-bubble";
+    bubble.textContent = userText;
+    userRow.appendChild(bubble);
+    block.appendChild(userRow);
+  }
 
-  // Thinking block (hidden until there's content)
+  // Thinking block
   const thinkBlock = document.createElement("div");
   thinkBlock.className = "think-block open";
   thinkBlock.style.display = "none";
@@ -717,7 +640,7 @@ function createExchange(userText) {
   respBlock.className = "response-block streaming";
   block.appendChild(respBlock);
 
-  // Meta row (hidden until done)
+  // Meta row
   const metaRow = document.createElement("div");
   metaRow.className = "response-meta";
   metaRow.style.display = "none";
@@ -729,33 +652,37 @@ function createExchange(userText) {
   return { thinkBlock, thinkBody, respBlock, metaRow };
 }
 
-// ── Send ──────────────────────────────────────────────────────────────────────
-async function send() {
-  const prompt = promptInput.value.trim();
-  if (!prompt || btnSend.disabled) return;
-
-  promptInput.value = "";
-  promptInput.style.height = "auto";
+// ── Core send logic ───────────────────────────────────────────────────────────
+async function sendMessage(text, showBubble = true) {
+  if (btnSend.disabled) return;
 
   setBusy(true);
   abortController = new AbortController();
 
-  const { thinkBlock, thinkBody, respBlock, metaRow } = createExchange(prompt);
+  const { thinkBlock, thinkBody, respBlock, metaRow } =
+    createExchange(showBubble ? text : null);
+
+  // Build messages array for /api/chat
+  const messages = [{ role: "system", content: systemPrompt }];
+  for (const entry of chatHistory) {
+    messages.push({ role: "user",      content: entry.prompt });
+    messages.push({ role: "assistant", content: entry.response });
+  }
+  messages.push({ role: "user", content: text });
 
   const payload = {
-    model:  modelSelect.value,
-    prompt: prompt,
-    stream: true,
-    think:  true,
+    model:    modelSelect.value,
+    messages: messages,
+    stream:   true,
+    think:    true,
   };
-  if (systemPrompt) payload.system = systemPrompt;
 
   let thinkBuf = "";
   let respBuf  = "";
   let inThink  = false;
 
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -775,8 +702,12 @@ async function send() {
         let chunk;
         try { chunk = JSON.parse(line); } catch { continue; }
 
-        if (chunk.thinking) {
-          thinkBuf += chunk.thinking;
+        const msg           = chunk.message || {};
+        const thinkingChunk = msg.thinking  || chunk.thinking || "";
+        const textChunk     = msg.content   || chunk.response || "";
+
+        if (thinkingChunk) {
+          thinkBuf += thinkingChunk;
           thinkBlock.style.display = "";
           thinkBlock.classList.add("streaming");
           thinkBody.textContent = thinkBuf;
@@ -784,20 +715,20 @@ async function send() {
             thinkBody.scrollTop = thinkBody.scrollHeight;
         }
 
-        if (chunk.response) {
-          let text = chunk.response;
-          while (text) {
+        if (textChunk) {
+          let t = textChunk;
+          while (t) {
             if (inThink) {
-              const end = text.indexOf("</think>");
-              if (end === -1) { thinkBuf += text; text = ""; }
-              else { thinkBuf += text.slice(0, end); text = text.slice(end + 8); inThink = false; }
+              const end = t.indexOf("</think>");
+              if (end === -1) { thinkBuf += t; t = ""; }
+              else { thinkBuf += t.slice(0, end); t = t.slice(end + 8); inThink = false; }
               thinkBlock.style.display = "";
               thinkBlock.classList.add("streaming");
               thinkBody.textContent = thinkBuf;
             } else {
-              const start = text.indexOf("<think>");
-              if (start === -1) { respBuf += text; text = ""; }
-              else { respBuf += text.slice(0, start); text = text.slice(start + 7); inThink = true; }
+              const start = t.indexOf("<think>");
+              if (start === -1) { respBuf += t; t = ""; }
+              else { respBuf += t.slice(0, start); t = t.slice(start + 7); inThink = true; }
               respBlock.textContent = respBuf;
               respBlock.scrollIntoView({ behavior: "smooth", block: "end" });
             }
@@ -811,17 +742,20 @@ async function send() {
     const t = stopTimer();
     timerDisplay.textContent = t ? `${t}s` : "";
 
-    // Finalise UI
     thinkBlock.classList.remove("streaming");
     respBlock.classList.remove("streaming");
 
     lastResponse = respBuf;
+
     if (respBuf || thinkBuf) {
-      transcript.push({ prompt: prompt, thinking: thinkBuf, response: respBuf });
-      extractName(respBuf);
+      // Always record in chatHistory for model context
+      chatHistory.push({ prompt: text, response: respBuf });
+      // Only add real user turns to the print transcript
+      if (showBubble) {
+        transcript.push({ prompt: text, thinking: thinkBuf, response: respBuf });
+      }
     }
 
-    // Meta row: time + print button
     if (respBuf) {
       const captured = respBuf;
       metaRow.style.display = "flex";
@@ -834,7 +768,7 @@ async function send() {
       const printBtn = document.createElement("button");
       printBtn.className = "meta-print";
       printBtn.textContent = "Print";
-      printBtn.addEventListener("click", () => printText(captured));
+      printBtn.addEventListener("click", () => triggerPrint());
       metaRow.appendChild(printBtn);
     }
 
@@ -845,7 +779,8 @@ async function send() {
     thinkBlock.classList.remove("streaming");
     respBlock.classList.remove("streaming");
     if (err.name !== "AbortError") {
-      respBlock.textContent = `Could not connect to Ollama at ${OLLAMA_URL}.\nMake sure Ollama is running (ollama serve).`;
+      respBlock.textContent =
+        `Could not connect to Ollama at ${OLLAMA_URL}.\nMake sure Ollama is running (ollama serve).`;
       statusLabel.textContent = "Connection error";
     } else {
       statusLabel.textContent = "Stopped";
@@ -855,17 +790,22 @@ async function send() {
   }
 }
 
-// ── Print ─────────────────────────────────────────────────────────────────────
-function printLast()          { triggerPrint(); }
-function printText(_response) { triggerPrint(); }  // per-exchange link → always full transcript
-
-function extractName(response) {
-  const m = response.match(/locked\s+that\s+in[,.]?\s+([A-Za-z][^.,!?\n]{1,40})/i);
-  if (m) {
-    const name = m[1].trim().replace(/[.,!? ]+$/, "");
-    if (name) participantName = name;
-  }
+// Send from input box
+async function send() {
+  const prompt = promptInput.value.trim();
+  if (!prompt) return;
+  promptInput.value = "";
+  promptInput.style.height = "auto";
+  await sendMessage(prompt, true);
 }
+
+// Auto-trigger Ada's opening message after name capture
+async function kickoff() {
+  await sendMessage("hello", false);
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+function printLast() { triggerPrint(); }
 
 function triggerPrint() {
   if (!transcript.length) { statusLabel.textContent = "Nothing to print"; return; }
@@ -875,7 +815,7 @@ function triggerPrint() {
 }
 
 function buildAndPrint() {
-  const SEP = "-".repeat(40);
+  const SEP  = "-".repeat(40);
   const body = [];
 
   if (participantName) { body.push(`PARTICIPANT: ${participantName}`, ""); }
@@ -884,11 +824,9 @@ function buildAndPrint() {
   for (const ex of transcript) {
     body.push(`User: ${ex.prompt}`, "", `Ada: ${ex.response}`, "");
   }
-
   if (printPrefix) { body.push(SEP, printPrefix); }
 
-  const fullText = body.join("\n");
-  const url = `http://${printerIp}:8080/?code=${encodeURIComponent(fullText)}`;
+  const url = `http://${printerIp}:8080/?code=${encodeURIComponent(body.join("\n"))}`;
   fetch(url, { mode: "no-cors" })
     .then(() => { statusLabel.textContent = "Printed successfully"; })
     .catch(err => { statusLabel.textContent = `Printer error: ${err.message}`; });
@@ -900,23 +838,24 @@ function clearChat() {
   chatInner.appendChild(emptyState);
   emptyState.style.display = "";
   timerDisplay.textContent = "";
-  statusLabel.textContent = "";
+  statusLabel.textContent  = "";
   lastResponse    = "";
   transcript      = [];
+  chatHistory     = [];
   participantName = "";
 }
 
 function newUser() {
-  if (!confirm("Start a new session?\n\nThis will clear all chat history. Your settings (system prompt, printer, model) will be kept.")) return;
   if (abortController) abortController.abort();
   clearChat();
+  showWelcome();
 }
 
 function submitSession() {
-  // buildAndPrint reads transcript synchronously before clearChat wipes it
   triggerPrint();
   if (abortController) abortController.abort();
   clearChat();
+  showWelcome();
 }
 
 // ── Busy ──────────────────────────────────────────────────────────────────────
@@ -940,26 +879,27 @@ btnStop.addEventListener("click", () => abortController && abortController.abort
 btnClear.addEventListener("click", clearChat);
 btnNewUser.addEventListener("click", newUser);
 document.getElementById("btn-submit-session").addEventListener("click", submitSession);
+document.getElementById("btn-print-last").addEventListener("click", printLast);
 
 // Settings modal
-const systemPromptInput   = document.getElementById("system-prompt-input");
-const printPrefixInput    = document.getElementById("print-prefix-input");
-const printerIpInput      = document.getElementById("printer-ip-input");
+const systemPromptInput    = document.getElementById("system-prompt-input");
+const printPrefixInput     = document.getElementById("print-prefix-input");
+const printerIpInput       = document.getElementById("printer-ip-input");
 const participantNameInput = document.getElementById("participant-name-input");
 
 document.getElementById("btn-sysprompt").addEventListener("click", () => {
-  systemPromptInput.value    = systemPrompt;
+  systemPromptInput.value    = systemPromptTemplate;
   printPrefixInput.value     = printPrefix;
   printerIpInput.value       = printerIp;
   participantNameInput.value = participantName;
   modalOverlay.classList.add("open");
-  participantNameInput.focus();
 });
 document.getElementById("modal-save").addEventListener("click", () => {
-  systemPrompt    = systemPromptInput.value.trim();
-  printPrefix     = printPrefixInput.value.trim();
-  printerIp       = printerIpInput.value.trim();
-  participantName = participantNameInput.value.trim();
+  systemPromptTemplate = systemPromptInput.value.trim();
+  systemPrompt         = systemPromptTemplate.replaceAll("{NAME}", participantName);
+  printPrefix          = printPrefixInput.value.trim();
+  printerIp            = printerIpInput.value.trim();
+  participantName      = participantNameInput.value.trim();
   modalOverlay.classList.remove("open");
 });
 document.getElementById("modal-clear-btn").addEventListener("click", () => {
@@ -968,9 +908,12 @@ document.getElementById("modal-clear-btn").addEventListener("click", () => {
 document.getElementById("modal-cancel").addEventListener("click", () => {
   modalOverlay.classList.remove("open");
 });
-document.getElementById("btn-print-last").addEventListener("click", printLast);
-modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) modalOverlay.classList.remove("open"); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") modalOverlay.classList.remove("open"); });
+modalOverlay.addEventListener("click", e => {
+  if (e.target === modalOverlay) modalOverlay.classList.remove("open");
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") modalOverlay.classList.remove("open");
+});
 </script>
 </body>
 </html>
