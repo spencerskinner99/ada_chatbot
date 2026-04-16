@@ -153,7 +153,7 @@ class OllamaGUI:
         # Logo
         try:
             from PIL import Image, ImageTk
-            img = Image.open("Ada Logo white.png").resize((96, 96), Image.LANCZOS)
+            img = Image.open("Ada white.png").resize((96, 96), Image.LANCZOS)
             self._welcome_logo = ImageTk.PhotoImage(img)
             tk.Label(dialog, image=self._welcome_logo, bg=BG).grid(
                 row=1, column=0, pady=(20, 8))
