@@ -131,7 +131,7 @@ class OllamaGUI:
     def _show_welcome(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("ADA")
-        dialog.geometry("380x300")
+        dialog.geometry("380x360")
         dialog.resizable(False, False)
         dialog.configure(bg=C["bg"])
         dialog.transient(self.root)
@@ -167,12 +167,27 @@ class OllamaGUI:
         entry.bind("<FocusOut>", on_focus_out)
         entry.focus_set()
 
+        # Model selector
+        model_frame = tk.Frame(dialog, bg=C["bg"])
+        model_frame.grid(row=3, column=0, pady=(14, 0))
+        tk.Label(model_frame, text="model", font=F_MUTED,
+                 bg=C["bg"], fg=C["muted"]).pack(side="left", padx=(0, 6))
+        welcome_model_var = tk.StringVar(value=self.model_var.get())
+        welcome_combo = ttk.Combobox(model_frame, textvariable=welcome_model_var,
+                                     width=22, font=F_SMALL)
+        welcome_combo["values"] = self.model_combo["values"]
+        welcome_combo.pack(side="left")
+
         def begin(_event=None):
             name = name_var.get().strip()
             if not name or name == "enter your name":
                 entry.focus_set()
                 return
             self._participant_name = name
+            # Apply model selection from welcome screen
+            chosen = welcome_model_var.get().strip()
+            if chosen:
+                self.model_var.set(chosen)
             dialog.destroy()
             self.root.after(50, self._kickoff)
 
@@ -182,7 +197,7 @@ class OllamaGUI:
             dialog, text="begin", command=begin,
             bg=C["accent"], fg="#ffffff", font=F_UI,
             relief="flat", cursor="hand2", padx=24, pady=8)
-        begin_btn.grid(row=3, column=0, pady=(16, 0))
+        begin_btn.grid(row=4, column=0, pady=(14, 0))
         begin_btn.bind("<Enter>", lambda e: begin_btn.config(bg=C["accent_dark"]))
         begin_btn.bind("<Leave>", lambda e: begin_btn.config(bg=C["accent"]))
 

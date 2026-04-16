@@ -92,6 +92,30 @@ body {
 #welcome-name:focus { border-color: var(--accent); }
 #welcome-name::placeholder { color: var(--text-muted); }
 
+#welcome-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+#welcome-model-row label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+#welcome-model-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  flex: 1;
+  max-width: 260px;
+}
+#welcome-model-select:focus { border-color: var(--accent); }
+
 #welcome-begin {
   width: 300px;
   padding: 14px;
@@ -390,6 +414,10 @@ body {
     <div id="welcome-title">ada</div>
     <div id="welcome-subtitle">wellness assessment</div>
     <input type="text" id="welcome-name" placeholder="enter your name" autocomplete="off" spellcheck="false">
+    <div id="welcome-model-row">
+      <label for="welcome-model-select">model</label>
+      <select id="welcome-model-select"><option>Loading…</option></select>
+    </div>
     <button id="welcome-begin">begin</button>
   </div>
 </div>
@@ -538,10 +566,12 @@ const statusLabel        = document.getElementById("status-label");
 const modalOverlay       = document.getElementById("modal-overlay");
 const welcomeOverlay     = document.getElementById("welcome-overlay");
 const welcomeNameInput   = document.getElementById("welcome-name");
+const welcomeModelSelect = document.getElementById("welcome-model-select");
 
 // ── Welcome screen ────────────────────────────────────────────────────────────
 function showWelcome() {
   welcomeNameInput.value = "";
+  welcomeModelSelect.value = modelSelect.value;
   welcomeOverlay.style.display = "flex";
   setTimeout(() => welcomeNameInput.focus(), 50);
 }
@@ -549,6 +579,8 @@ function showWelcome() {
 function startSession(name) {
   participantName = name.trim();
   systemPrompt    = systemPromptTemplate.replaceAll("{NAME}", participantName);
+  // Sync model selection from welcome screen to main dropdown
+  if (welcomeModelSelect.value) modelSelect.value = welcomeModelSelect.value;
   welcomeOverlay.style.display = "none";
   kickoff();
 }
@@ -571,11 +603,15 @@ async function loadModels() {
     const res    = await fetch(`${OLLAMA_URL}/api/tags`);
     const data   = await res.json();
     const models = (data.models || []).map(m => m.name);
-    modelSelect.innerHTML = models.map(m => `<option>${m}</option>`).join("");
+    const options = models.map(m => `<option>${m}</option>`).join("");
+    modelSelect.innerHTML = options;
+    welcomeModelSelect.innerHTML = options;
     const pref = models.find(m => m.startsWith("gemma4"));
-    if (pref) modelSelect.value = pref;
+    if (pref) { modelSelect.value = pref; welcomeModelSelect.value = pref; }
   } catch {
-    modelSelect.innerHTML = `<option value="gemma4:latest">gemma4:latest</option>`;
+    const fallback = `<option value="gemma4:latest">gemma4:latest</option>`;
+    modelSelect.innerHTML = fallback;
+    welcomeModelSelect.innerHTML = fallback;
   }
 }
 loadModels();
