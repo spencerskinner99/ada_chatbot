@@ -23,21 +23,21 @@ DEFAULT_MODEL = "gemma4:latest"
 PRINTER_HOST  = "localhost"
 
 C = {
-    "bg":           "#f7f7f8",
-    "surface":      "#ffffff",
-    "border":       "#e5e5e5",
-    "text":         "#1a1a1a",
-    "muted":        "#888888",
-    "accent":       "#1a73e8",
-    "accent_dark":  "#1558b0",
-    "user_bg":      "#1a73e8",
+    "bg":           "#0d1526",
+    "surface":      "#162035",
+    "border":       "#2a3a55",
+    "text":         "#ffffff",
+    "muted":        "#7a8aaa",
+    "accent":       "#8d15c2",
+    "accent_dark":  "#6f18bb",
+    "user_bg":      "#8d15c2",
     "user_fg":      "#ffffff",
-    "think_bg":     "#f4f4f6",
-    "think_border": "#dddddd",
-    "think_fg":     "#666666",
-    "topbar":       "#ffffff",
-    "topbar_border":"#e5e5e5",
-    "input_bg":     "#ffffff",
+    "think_bg":     "#111e35",
+    "think_border": "#2a3a55",
+    "think_fg":     "#8899bb",
+    "topbar":       "#1a2fcc",
+    "topbar_border":"#1a2fcc",
+    "input_bg":     "#162035",
 }
 
 F_TITLE  = ("Helvetica", 14, "bold")
@@ -300,7 +300,7 @@ class OllamaGUI:
     def _topbar_btn(self, parent, text, cmd, accent=False):
         bg = C["accent"] if accent else C["surface"]
         fg = "#ffffff" if accent else C["text"]
-        hover_bg = "#1558b0" if accent else C["bg"]
+        hover_bg = C["accent_dark"] if accent else C["border"]
         btn = tk.Button(parent, text=text, command=cmd,
                         bg=bg, fg=fg, font=F_SMALL,
                         relief="flat", cursor="hand2",
@@ -893,7 +893,7 @@ class OllamaGUI:
             self._start_time = time.monotonic()
             self.timer_var.set("0.0s")
             self._tick()
-            self.send_btn.config(state="disabled", bg="#b0c4e8")
+            self.send_btn.config(state="disabled", bg="#5a2080")
             self.stop_btn.config(state="normal")
             self.status_var.set("Generating…")
         else:
