@@ -129,49 +129,73 @@ class OllamaGUI:
     # ── Welcome screen ────────────────────────────────────────────────────────
 
     def _show_welcome(self):
+        BG      = "#1a2fcc"   # brand deep blue
+        ACCENT  = "#8d15c2"   # brand purple
+        ACCENT2 = "#6f18bb"
+        FG      = "#ffffff"
+        FG_MUT  = "rgba(255,255,255,0.7)"
+
         dialog = tk.Toplevel(self.root)
         dialog.title("ADA")
-        dialog.geometry("380x360")
+        dialog.geometry("420x380")
         dialog.resizable(False, False)
-        dialog.configure(bg=C["bg"])
+        dialog.configure(bg=BG)
         dialog.transient(self.root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
 
-        tk.Label(dialog, text="ada", font=("Helvetica", 40, "bold"),
-                 bg=C["bg"], fg=C["text"]).grid(row=0, column=0, pady=(44, 4))
-        tk.Label(dialog, text="wellness assessment",
-                 font=F_MUTED, bg=C["bg"], fg=C["muted"]).grid(
-            row=1, column=0, pady=(0, 28))
+        # Nav bar
+        nav = tk.Frame(dialog, bg=BG)
+        nav.grid(row=0, column=0, sticky="ew", padx=20, pady=(16, 0))
+        tk.Label(nav, text="Ada x Ollama", font=("Helvetica", 13, "bold"),
+                 bg=BG, fg=FG).pack(side="left")
 
+        # Logo
+        try:
+            from PIL import Image, ImageTk
+            img = Image.open("Ada Logo white.png").resize((96, 96), Image.LANCZOS)
+            self._welcome_logo = ImageTk.PhotoImage(img)
+            tk.Label(dialog, image=self._welcome_logo, bg=BG).grid(
+                row=1, column=0, pady=(20, 8))
+        except Exception:
+            tk.Label(dialog, text="ada", font=("Helvetica", 36, "bold"),
+                     bg=BG, fg=FG).grid(row=1, column=0, pady=(28, 8))
+
+        # Subtitle
+        tk.Label(dialog,
+                 text="A safe, judgement-free space to talk.",
+                 font=("Helvetica", 11), bg=BG, fg="#ccccff",
+                 wraplength=320).grid(row=2, column=0, pady=(0, 20))
+
+        # Name entry
         name_var = tk.StringVar()
         entry = tk.Entry(
             dialog, textvariable=name_var, font=F_UI,
-            relief="flat", bg=C["surface"], fg=C["muted"],
-            highlightbackground=C["border"], highlightthickness=1,
+            relief="flat", bg="#ffffff", fg="#888888",
+            highlightbackground="#ffffff", highlightthickness=2,
             justify="center")
-        entry.grid(row=2, column=0, sticky="ew", padx=60, ipady=8)
-        entry.insert(0, "enter your name")
+        entry.grid(row=3, column=0, sticky="ew", padx=50, ipady=10)
+        entry.insert(0, "enter your name...")
 
         def on_focus_in(_e):
-            if name_var.get() == "enter your name":
+            if name_var.get() == "enter your name...":
                 entry.delete(0, tk.END)
-                entry.config(fg=C["text"])
+                entry.config(fg="#1e293b")
 
         def on_focus_out(_e):
             if not name_var.get().strip():
-                entry.insert(0, "enter your name")
-                entry.config(fg=C["muted"])
+                entry.insert(0, "enter your name...")
+                entry.config(fg="#888888")
 
         entry.bind("<FocusIn>",  on_focus_in)
         entry.bind("<FocusOut>", on_focus_out)
         entry.focus_set()
 
         # Model selector
-        model_frame = tk.Frame(dialog, bg=C["bg"])
-        model_frame.grid(row=3, column=0, pady=(14, 0))
+        model_frame = tk.Frame(dialog, bg=BG)
+        model_frame.grid(row=4, column=0, pady=(12, 0))
         tk.Label(model_frame, text="model", font=F_MUTED,
-                 bg=C["bg"], fg=C["muted"]).pack(side="left", padx=(0, 6))
+                 bg=BG, fg="#aaaadd").pack(side="left", padx=(0, 8))
         welcome_model_var = tk.StringVar(value=self.model_var.get())
         welcome_combo = ttk.Combobox(model_frame, textvariable=welcome_model_var,
                                      width=22, font=F_SMALL)
@@ -180,11 +204,10 @@ class OllamaGUI:
 
         def begin(_event=None):
             name = name_var.get().strip()
-            if not name or name == "enter your name":
+            if not name or name == "enter your name...":
                 entry.focus_set()
                 return
             self._participant_name = name
-            # Apply model selection from welcome screen
             chosen = welcome_model_var.get().strip()
             if chosen:
                 self.model_var.set(chosen)
@@ -194,14 +217,20 @@ class OllamaGUI:
         entry.bind("<Return>", begin)
 
         begin_btn = tk.Button(
-            dialog, text="begin", command=begin,
-            bg=C["accent"], fg="#ffffff", font=F_UI,
-            relief="flat", cursor="hand2", padx=24, pady=8)
-        begin_btn.grid(row=4, column=0, pady=(14, 0))
-        begin_btn.bind("<Enter>", lambda e: begin_btn.config(bg=C["accent_dark"]))
-        begin_btn.bind("<Leave>", lambda e: begin_btn.config(bg=C["accent"]))
+            dialog, text="begin →", command=begin,
+            bg=ACCENT, fg=FG, font=("Helvetica", 12, "bold"),
+            relief="flat", cursor="hand2",
+            activebackground=ACCENT2, activeforeground=FG,
+            padx=28, pady=10, bd=0)
+        begin_btn.grid(row=5, column=0, pady=(14, 0))
+        begin_btn.bind("<Enter>", lambda e: begin_btn.config(bg=ACCENT2))
+        begin_btn.bind("<Leave>", lambda e: begin_btn.config(bg=ACCENT))
 
-        # Block closing without entering a name
+        # Footer
+        tk.Label(dialog, text="© 2026 Ada AI. Conversations are not private ;]",
+                 font=("Helvetica", 9), bg=BG, fg="#6666aa").grid(
+            row=6, column=0, pady=(16, 12))
+
         dialog.protocol("WM_DELETE_WINDOW", lambda: None)
 
     # ── Kickoff ───────────────────────────────────────────────────────────────

@@ -45,90 +45,117 @@ body {
 #welcome-overlay {
   position: fixed;
   inset: 0;
-  background: var(--bg);
+  background-image: linear-gradient(135deg, #1771e5 0%, #183ace 33%, #6f18bb 66%, #8d15c2 100%);
+  background-attachment: fixed;
   z-index: 999;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+}
+
+#welcome-nav {
+  padding: 24px 32px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: white;
 }
 
 #welcome-card {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 0 20px;
 }
 
-#welcome-title {
-  font-size: 60px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -3px;
-  line-height: 1;
-  margin-bottom: 10px;
+#welcome-logo {
+  height: 128px;
+  object-fit: contain;
+  margin-bottom: 24px;
 }
 
 #welcome-subtitle {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 44px;
-  letter-spacing: 0.04em;
+  font-size: 18px;
+  color: rgba(255,255,255,0.9);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  margin-bottom: 40px;
+}
+
+#welcome-input-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin-bottom: 14px;
 }
 
 #welcome-name {
-  width: 300px;
-  padding: 14px 20px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  width: 100%;
+  padding: 18px 60px 18px 24px;
+  border-radius: 9999px;
+  border: none;
   font-family: inherit;
-  font-size: 15px;
-  text-align: center;
-  background: var(--surface);
-  color: var(--text);
+  font-size: 16px;
+  color: #1e293b;
+  background: white;
   outline: none;
-  transition: border-color .15s;
-  margin-bottom: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
-#welcome-name:focus { border-color: var(--accent); }
-#welcome-name::placeholder { color: var(--text-muted); }
+#welcome-name::placeholder { color: rgba(30,41,59,0.4); }
+
+#welcome-begin {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  background: #8d15c2;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+  color: white;
+  flex-shrink: 0;
+}
+#welcome-begin:hover { background: #6f18bb; }
 
 #welcome-model-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
 }
 #welcome-model-row label {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
 }
 #welcome-model-select {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+  padding: 7px 12px;
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 8px;
   font-family: inherit;
   font-size: 13px;
-  background: var(--surface);
-  color: var(--text);
+  background: rgba(255,255,255,0.15);
+  color: white;
   outline: none;
-  flex: 1;
-  max-width: 260px;
-}
-#welcome-model-select:focus { border-color: var(--accent); }
-
-#welcome-begin {
-  width: 300px;
-  padding: 14px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 15px;
+  max-width: 280px;
   cursor: pointer;
-  transition: background .15s;
 }
-#welcome-begin:hover { background: var(--accent-dark); }
+#welcome-model-select option { background: #1e293b; color: white; }
+#welcome-model-select:focus { border-color: rgba(255,255,255,0.65); }
+
+#welcome-footer {
+  padding: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+}
 
 /* ── Top bar ── */
 #topbar {
@@ -410,16 +437,24 @@ body {
 
 <!-- ── Welcome overlay ── -->
 <div id="welcome-overlay">
+  <div id="welcome-nav">Ada x Ollama</div>
   <div id="welcome-card">
-    <div id="welcome-title">ada</div>
-    <div id="welcome-subtitle">wellness assessment</div>
-    <input type="text" id="welcome-name" placeholder="enter your name" autocomplete="off" spellcheck="false">
+    <img id="welcome-logo" src="Ada Logo white.png" alt="Ada">
+    <p id="welcome-subtitle">A <em>safe</em>, judgement-free space to talk. Whenever you need it.</p>
+    <div id="welcome-input-wrap">
+      <input type="text" id="welcome-name" placeholder="enter your name..." autocomplete="off" spellcheck="false">
+      <button id="welcome-begin">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+        </svg>
+      </button>
+    </div>
     <div id="welcome-model-row">
       <label for="welcome-model-select">model</label>
       <select id="welcome-model-select"><option>Loading…</option></select>
     </div>
-    <button id="welcome-begin">begin</button>
   </div>
+  <div id="welcome-footer">&copy; 2026 Ada AI. Conversations are not private ;]</div>
 </div>
 
 <!-- ── Top bar ── -->
