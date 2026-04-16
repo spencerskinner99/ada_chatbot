@@ -144,11 +144,59 @@ class OllamaGUI:
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
 
+        # Shared state for settings panel
+        welcome_model_var = tk.StringVar(value=self.model_var.get())
+        welcome_ip_var    = tk.StringVar(value=self._printer_ip)
+
         # Nav bar
         nav = tk.Frame(dialog, bg=BG)
         nav.grid(row=0, column=0, sticky="ew", padx=20, pady=(16, 0))
         tk.Label(nav, text="Ada x Ollama", font=("Helvetica", 13, "bold"),
                  bg=BG, fg=FG).pack(side="left")
+
+        def open_welcome_settings():
+            sp = tk.Toplevel(dialog)
+            sp.title("Settings")
+            sp.geometry("280x160")
+            sp.resizable(False, False)
+            sp.configure(bg="#162035")
+            sp.transient(dialog)
+            sp.grab_set()
+            sp.columnconfigure(0, weight=1)
+
+            tk.Label(sp, text="MODEL", font=F_MUTED, bg="#162035",
+                     fg="#7a8aaa").grid(row=0, column=0, sticky="w", padx=14, pady=(14, 2))
+            sp_combo = ttk.Combobox(sp, textvariable=welcome_model_var,
+                                    width=28, font=F_SMALL)
+            sp_combo["values"] = self.model_combo["values"]
+            sp_combo.grid(row=1, column=0, padx=14, pady=(0, 10), sticky="ew")
+
+            tk.Label(sp, text="PRINTER IP", font=F_MUTED, bg="#162035",
+                     fg="#7a8aaa").grid(row=2, column=0, sticky="w", padx=14, pady=(4, 2))
+            ip_entry = tk.Entry(sp, textvariable=welcome_ip_var, font=F_SMALL,
+                                relief="flat", bg="#1e293b", fg="#ffffff",
+                                insertbackground="#ffffff",
+                                highlightbackground="#3a4a65", highlightthickness=1)
+            ip_entry.grid(row=3, column=0, padx=14, pady=(0, 14), sticky="ew", ipady=5)
+
+            def save_sp():
+                ip = welcome_ip_var.get().strip()
+                if ip:
+                    self._printer_ip = ip
+                sp.destroy()
+
+            tk.Button(sp, text="Save & Close", command=save_sp,
+                      bg=ACCENT, fg=FG, relief="flat", cursor="hand2",
+                      activebackground=ACCENT2, activeforeground=FG,
+                      padx=14, pady=6).grid(row=4, column=0, pady=(0, 12))
+
+        settings_btn = tk.Button(nav, text="⚙ settings",
+                                 command=open_welcome_settings,
+                                 bg="white", fg=BG,
+                                 relief="flat", cursor="hand2",
+                                 font=("Helvetica", 10),
+                                 padx=10, pady=4, bd=0)
+        settings_btn.pack(side="right")
 
         # Logo
         try:
@@ -191,17 +239,6 @@ class OllamaGUI:
         entry.bind("<FocusOut>", on_focus_out)
         entry.focus_set()
 
-        # Model selector
-        model_frame = tk.Frame(dialog, bg=BG)
-        model_frame.grid(row=4, column=0, pady=(12, 0))
-        tk.Label(model_frame, text="model", font=F_MUTED,
-                 bg=BG, fg="#aaaadd").pack(side="left", padx=(0, 8))
-        welcome_model_var = tk.StringVar(value=self.model_var.get())
-        welcome_combo = ttk.Combobox(model_frame, textvariable=welcome_model_var,
-                                     width=22, font=F_SMALL)
-        welcome_combo["values"] = self.model_combo["values"]
-        welcome_combo.pack(side="left")
-
         def begin(_event=None):
             name = name_var.get().strip()
             if not name or name == "enter your name...":
@@ -211,6 +248,9 @@ class OllamaGUI:
             chosen = welcome_model_var.get().strip()
             if chosen:
                 self.model_var.set(chosen)
+            ip = welcome_ip_var.get().strip()
+            if ip:
+                self._printer_ip = ip
             dialog.destroy()
             self.root.after(50, self._kickoff)
 
@@ -222,14 +262,14 @@ class OllamaGUI:
             relief="flat", cursor="hand2",
             activebackground=ACCENT2, activeforeground=FG,
             padx=28, pady=10, bd=0)
-        begin_btn.grid(row=5, column=0, pady=(14, 0))
+        begin_btn.grid(row=4, column=0, pady=(14, 0))
         begin_btn.bind("<Enter>", lambda e: begin_btn.config(bg=ACCENT2))
         begin_btn.bind("<Leave>", lambda e: begin_btn.config(bg=ACCENT))
 
         # Footer
         tk.Label(dialog, text="© 2026 Ada AI. Conversations are not private ;]",
                  font=("Helvetica", 9), bg=BG, fg="#6666aa").grid(
-            row=6, column=0, pady=(16, 12))
+            row=5, column=0, pady=(16, 12))
 
         dialog.protocol("WM_DELETE_WINDOW", lambda: None)
 
