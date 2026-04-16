@@ -572,10 +572,10 @@ async function loadModels() {
     const data   = await res.json();
     const models = (data.models || []).map(m => m.name);
     modelSelect.innerHTML = models.map(m => `<option>${m}</option>`).join("");
-    const pref = models.find(m => m.startsWith("qwen3.5"));
+    const pref = models.find(m => m.startsWith("gemma4"));
     if (pref) modelSelect.value = pref;
   } catch {
-    modelSelect.innerHTML = `<option value="qwen3.5:latest">qwen3.5:latest</option>`;
+    modelSelect.innerHTML = `<option value="gemma4:latest">gemma4:latest</option>`;
   }
 }
 loadModels();

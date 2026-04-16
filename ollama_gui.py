@@ -19,7 +19,7 @@ except ImportError:
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 OLLAMA_URL    = "http://localhost:11434"
-DEFAULT_MODEL = "qwen3.5:latest"
+DEFAULT_MODEL = "gemma4:latest"
 PRINTER_HOST  = "localhost"
 
 C = {
