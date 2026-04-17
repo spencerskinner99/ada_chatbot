@@ -792,6 +792,19 @@ class OllamaGUI:
             body.append(SEP)
             body.append(prefix)
 
+        PRIVACY_NOTICE = (
+            "The collection of emotional data exploits fundamental human vulnerabilities. "
+            "Because humans are biologically programmed to react to emotional triggers, "
+            "this information can serve as a backdoor to our decision-making process. "
+            "In many digital systems, intimate internal states are captured to predict "
+            "and influence behaviour. In this exhibition, however, all data is processed "
+            "strictly on this local machine. No information is transmitted externally, "
+            "and all records are permanently deleted immediately after your session. "
+            "Your privacy is protected."
+        )
+        body.append(SEP)
+        body.append(PRIVACY_NOTICE)
+
         self._send_to_printer(host, "\n".join(body))
 
     def _send_to_printer(self, host: str, text: str):
